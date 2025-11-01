@@ -72,31 +72,60 @@ npm run dev
 
 Open browser: **http://localhost:3001**
 
-## To Deploy Contracts
+## 🦊 MetaMask Setup
 
-1. **Set up `.env` file in root**:
-```bash
-MONAD_RPC_URL=https://testnet-rpc.monad.xyz
-MONAD_CHAIN_ID=10143
-PRIVATE_KEY=your_private_key_here
+### 1. Add Localhost Network
+
+- Network Name: `Hardhat Local`
+- RPC URL: `http://127.0.0.1:8545`
+- Chain ID: `1337`
+- Currency: `ETH`
+
+### 2. Import Test Account
+
+Private Key:
+```
+0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
 
-2. **Deploy**:
-```bash
-npm run compile
-npx hardhat run scripts/deploy.js --network monad
-```
+This account has **10,000 ETH** for testing.
 
-3. **Copy contract addresses** to `frontend/.env.local`
+---
 
-4. **Fund the voting contract** with prize money:
-```bash
-# Send MON tokens to the voting contract address
-```
+## ❌ Troubleshooting Errors
 
-5. **Create a competition**:
+### "Failed to fetch" Error
+**Cause:** Hardhat node (Terminal 1) not running  
+**Fix:** Start Terminal 1 and wait for "Started HTTP..." message
+
+### "Cannot connect to backend"
+**Cause:** Backend server (Terminal 3) not running  
+**Fix:** Start Terminal 3 with `node server.js`
+
+### "Contracts not configured"
+**Cause:** Contracts not deployed  
+**Fix:** Run Terminal 2 deployment command
+
+### MetaMask "Wrong Network"
+**Fix:** Switch MetaMask to "Hardhat Local" network
+
+---
+
+## ✅ Health Checks
+
+Test if services are running:
+
 ```bash
-npx hardhat run scripts/createCompetition.js --network monad <trackId> <durationSeconds> <prizeAmountInETH>
+# Test blockchain (should return block number)
+curl -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+  http://127.0.0.1:8545
+
+# Test backend (should return "OK")
+curl http://localhost:3002/health
+
+# Test frontend (should return HTML)
+curl http://localhost:3001
 ```
 
 ## Current Project Status
