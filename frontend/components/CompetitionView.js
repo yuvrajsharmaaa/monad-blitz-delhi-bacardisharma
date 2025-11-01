@@ -26,6 +26,13 @@ export default function CompetitionView({ trackId, voteCache, onBack }) {
         process.env.NEXT_PUBLIC_MONAD_RPC_URL || 'https://testnet-rpc.monad.xyz'
       );
       const votingContract = getVotingContractReadOnly(provider);
+      if (!votingContract) {
+        // Voting contract not configured — show a friendly message
+        setCompetition(null);
+        setRemixes([]);
+        setVotes({});
+        return;
+      }
 
       // Get competition info using memoized tallyVotes
       const comp = await votingContract.getCompetition(trackId);
@@ -40,11 +47,21 @@ export default function CompetitionView({ trackId, voteCache, onBack }) {
       });
 
       // Load remix metadata from IPFS
+
       const remixesData = await Promise.all(
         remixIds.map(async (id, index) => {
           // Fetch remix metadata from NFT contract
-          const metadataHash = 'ipfs-hash-here'; // Get from NFT contract
-          const metadata = await fetchFromIPFS(metadataHash);
+          // TODO: replace with actual metadataHash read from NFT contract
+          const metadataHash = null;
+          let metadata = null;
+          if (metadataHash) {
+            try {
+              metadata = await fetchFromIPFS(metadataHash);
+            } catch (err) {
+              console.error('Error fetching remix metadata:', err);
+            }
+          }
+
           return {
             tokenId: id.toString(),
             metadata,

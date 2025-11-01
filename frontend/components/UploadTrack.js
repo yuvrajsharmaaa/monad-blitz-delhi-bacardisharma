@@ -61,8 +61,11 @@ export default function UploadTrack({ onUpload, remixOf = null }) {
 
       // Mint NFT
       const musicNFT = getMusicNFTContract(signer);
+      if (!musicNFT) {
+        throw new Error('Music NFT contract address not configured. Add NEXT_PUBLIC_MUSIC_NFT_ADDRESS to .env.local');
+      }
+
       let tx;
-      
       if (remixOf) {
         tx = await musicNFT.mintRemix(remixOf, metadataHash);
       } else {
@@ -80,7 +83,7 @@ export default function UploadTrack({ onUpload, remixOf = null }) {
       if (onUpload) onUpload();
     } catch (error) {
       console.error('Upload error:', error);
-      setStatus(`Error: ${error.message}`);
+      setStatus(`Error: ${error?.message || String(error)}`);
     } finally {
       setUploading(false);
     }

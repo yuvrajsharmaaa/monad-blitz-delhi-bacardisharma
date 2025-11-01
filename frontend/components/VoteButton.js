@@ -20,16 +20,21 @@ export default function VoteButton({ trackId, remixId, disabled }) {
 
     try {
       const votingContract = getVotingContract(signer);
+      if (!votingContract) {
+        throw new Error('Voting contract address not configured. Add NEXT_PUBLIC_VOTING_CONTRACT_ADDRESS to frontend/.env.local');
+      }
+
       const tx = await votingContract.vote(trackId, remixId);
       setStatus('Waiting for confirmation...');
       await tx.wait();
       setStatus('✅ Vote cast successfully!');
     } catch (error) {
       console.error('Vote error:', error);
-      if (error.message.includes('Already voted')) {
+      const msg = error?.message || String(error);
+      if (msg.includes('Already voted')) {
         setStatus('❌ You have already voted');
       } else {
-        setStatus(`Error: ${error.message}`);
+        setStatus(`Error: ${msg}`);
       }
     } finally {
       setVoting(false);
