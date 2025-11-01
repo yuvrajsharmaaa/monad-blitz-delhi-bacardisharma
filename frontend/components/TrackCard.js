@@ -65,18 +65,39 @@ export default function TrackCard({ track, remixes = [], onOpenRemix, onVote }) 
         </div>
       </div>
 
-      {expanded && (
+      {expanded && remixes.length > 0 && (
         <div className="mt-4 border-t border-gray-700 pt-3">
-          <h4 className="font-bold">Remixes</h4>
-          {remixes.length === 0 && <p className="text-sm text-gray-400">No remixes yet</p>}
+          <h4 className="font-bold text-purple-400 mb-3">
+            Remixes ({remixes.length})
+          </h4>
           {remixes.map((r) => (
-            <div key={r.id} className="mt-3 p-3 bg-gray-900 rounded">
-              <div className="flex justify-between items-start">
+            <div key={r.id} className="mt-3 p-3 bg-gray-900 rounded border border-purple-500/30">
+              <div className="flex justify-between items-start mb-2">
                 <div>
-                  <div className="font-semibold">{r.title}</div>
+                  <div className="font-semibold text-purple-300">🎵 {r.title}</div>
                   <div className="text-xs text-gray-400">by {r.artist}</div>
+                  <div className="text-xs text-gray-500">
+                    {new Date(r.createdAt).toLocaleString()}
+                  </div>
                 </div>
-                <div className="text-sm text-primary">{r.voteCount || 0} votes</div>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="text-sm text-primary font-bold">{r.voteCount || 0} votes</div>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`http://localhost:3002/api/tracks/${r.id}/vote`, {
+                          method: 'PATCH',
+                        });
+                        if (res.ok && onVote) onVote();
+                      } catch (err) {
+                        console.error('Vote error', err);
+                      }
+                    }}
+                    className="px-2 py-1 bg-green-600 rounded text-xs"
+                  >
+                    Vote
+                  </button>
+                </div>
               </div>
               <div className="mt-2">
                 <audio controls src={r.fileUrl} className="w-full" />
