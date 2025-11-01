@@ -80,11 +80,16 @@ export default function MultiRemixBattle() {
 
   // Load Contests
   const loadContests = async (web3Provider = provider) => {
-    if (!web3Provider || !MULTI_REMIX_ADDRESS) return;
+    if (!web3Provider || !MULTI_REMIX_ADDRESS) {
+      console.log('Cannot load contests:', { provider: !!web3Provider, address: MULTI_REMIX_ADDRESS });
+      return;
+    }
 
     try {
+      console.log('Loading contests from:', MULTI_REMIX_ADDRESS);
       const contract = new ethers.Contract(MULTI_REMIX_ADDRESS, MULTI_REMIX_ABI, web3Provider);
       const totalContests = await contract.contestCount();
+      console.log('Total contests:', Number(totalContests));
       
       const loadedContests = [];
       for (let i = 1; i <= Number(totalContests); i++) {
@@ -92,8 +97,10 @@ export default function MultiRemixBattle() {
         const submissionIds = await contract.getContestSubmissions(i);
         
         const submissions = [];
+        console.log(`Contest ${i} has ${submissionIds.length} submissions`);
         for (let subId of submissionIds) {
           const sub = await contract.getSubmission(Number(subId));
+          console.log(`Loaded submission #${subId}:`, sub.remixURI);
           submissions.push({
             id: Number(sub.id),
             contestId: Number(sub.contestId),
@@ -118,9 +125,11 @@ export default function MultiRemixBattle() {
         });
       }
       
+      console.log('Loaded contests:', loadedContests);
       setContests(loadedContests);
     } catch (error) {
       console.error('Load error:', error);
+      setStatus('❌ Error loading contests: ' + error.message);
     }
   };
 
@@ -280,6 +289,12 @@ export default function MultiRemixBattle() {
             🎵 Multi-Remix Battle
           </h1>
           <p className="text-gray-300">Multiple submissions, community voting, winner takes prize!</p>
+          {!MULTI_REMIX_ADDRESS && (
+            <div className="mt-4 p-4 bg-red-900/50 rounded-lg">
+              <p className="text-red-300">⚠️ NEXT_PUBLIC_MULTI_REMIX_ADDRESS not configured!</p>
+              <p className="text-sm text-gray-400">Add to .env.local: NEXT_PUBLIC_MULTI_REMIX_ADDRESS=0xC0680334aA6b5B0aFc8253aE73900F3cC2e98B4D</p>
+            </div>
+          )}
         </div>
 
         {/* Wallet Connection */}
