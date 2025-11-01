@@ -67,7 +67,7 @@ async function main() {
   console.log("   Note: You'll need to vote from different wallets in the UI");
   console.log("   Target: 3 votes for Remix #1, 1 vote for Remix #2");
   
-  // Step 6: Display Results
+  // Display Results
   console.log("\n" + "=".repeat(60));
   console.log("📊 CONTEST #1 STATUS");
   console.log("=".repeat(60));
@@ -78,12 +78,12 @@ async function main() {
   console.log("\n🎵 Remix #1:");
   console.log(`   URI: ${submission1.remixURI}`);
   console.log(`   Payout Wallet: ${submission1.payoutWallet}`);
-  console.log(`   Votes: ${submission1.voteCount} 🏆`);
+  console.log(`   Votes: ${submission1.voteCount} (target: 3 votes)`);
   
   console.log("\n🎵 Remix #2:");
   console.log(`   URI: ${submission2.remixURI}`);
   console.log(`   Payout Wallet: ${submission2.payoutWallet}`);
-  console.log(`   Votes: ${submission2.voteCount}`);
+  console.log(`   Votes: ${submission2.voteCount} (target: 1 vote)`);
   
   console.log("\n" + "=".repeat(60));
   console.log("✅ Setup Complete!");
