@@ -58,6 +58,9 @@ if (!fs.existsSync(tracksFile)) {
   fs.writeFileSync(tracksFile, JSON.stringify({ tracks: [] }, null, 2));
 }
 
+// In-memory metadata store (for backward compatibility with frontend utils)
+const metadata = new Map();
+
 // Helper functions
 function loadTracks() {
   try {
@@ -124,6 +127,24 @@ app.post('/api/tracks', upload.single('file'), (req, res) => {
     });
   } catch (error) {
     console.error('Upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Backward-compatible upload endpoint expected by frontend/utils/ipfs.js
+// Returns a fileId and direct URL for the uploaded file
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fileId = req.file.filename;
+    const url = `http://localhost:${PORT}/api/files/${fileId}`;
+
+    return res.json({ success: true, fileId, url });
+  } catch (error) {
+    console.error('Legacy upload error:', error);
     res.status(500).json({ error: error.message });
   }
 });
