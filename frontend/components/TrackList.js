@@ -54,32 +54,68 @@ export default function TrackList({ tracks, loading }) {
       return;
     }
 
-    // Listen for vote events (memoized updates)
-    const voteListener = (originalTrackId, remixId, voter, newVoteCount) => {
-      updateVoteCache(originalTrackId.toString(), remixId.toString(), newVoteCount.toString());
-    };
-    votingContract.on('VoteCast', voteListener);
+    // Polling for events (Monad RPC doesn't support eth_newFilter)
+    let lastBlockChecked = null;
+    let pollingInterval = null;
 
-    // Listen for winner declarations
-    const winnerListener = (originalTrackId, winnerRemixId, winnerCreator, totalVotes) => {
-      updateCompetition(originalTrackId.toString(), {
-        winnerDeclared: true,
-        winnerRemixId: winnerRemixId.toString(),
-        totalVotes: totalVotes.toString(),
-      });
-    };
-    votingContract.on('WinnerDeclared', winnerListener);
-
-    // Cleanup function: remove listeners when component unmounts
-    // Note: add cleanup by returning from setupEventListeners if needed —
-    // we attach the cleanup to window so the effect can remove it on unmount.
-    // (A small but pragmatic approach for this repo structure.)
-    window.__tracklist_cleanup = () => {
+    const pollForEvents = async () => {
       try {
-        votingContract.off('VoteCast', voteListener);
-        votingContract.off('WinnerDeclared', winnerListener);
-      } catch (err) {
-        // ignore
+        if (!votingContract || !votingContract.runner) return;
+        
+        const provider = votingContract.runner.provider;
+        const currentBlock = await provider.getBlockNumber();
+        
+        if (lastBlockChecked === null) {
+          lastBlockChecked = currentBlock;
+          return;
+        }
+        
+        if (currentBlock <= lastBlockChecked) return;
+        
+        const fromBlock = lastBlockChecked + 1;
+        const toBlock = currentBlock;
+        
+        // Query VoteCast events
+        try {
+          const voteFilter = votingContract.filters.VoteCast();
+          const voteEvents = await votingContract.queryFilter(voteFilter, fromBlock, toBlock);
+          for (const event of voteEvents) {
+            const [originalTrackId, remixId, voter, newVoteCount] = event.args;
+            updateVoteCache(originalTrackId.toString(), remixId.toString(), newVoteCount.toString());
+          }
+        } catch (err) {
+          console.error('VoteCast query error:', err);
+        }
+        
+        // Query WinnerDeclared events
+        try {
+          const winnerFilter = votingContract.filters.WinnerDeclared();
+          const winnerEvents = await votingContract.queryFilter(winnerFilter, fromBlock, toBlock);
+          for (const event of winnerEvents) {
+            const [originalTrackId, winnerRemixId, winnerCreator, totalVotes] = event.args;
+            updateCompetition(originalTrackId.toString(), {
+              winnerDeclared: true,
+              winnerRemixId: winnerRemixId.toString(),
+              totalVotes: totalVotes.toString(),
+            });
+          }
+        } catch (err) {
+          console.error('WinnerDeclared query error:', err);
+        }
+        
+        lastBlockChecked = currentBlock;
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    };
+
+    pollingInterval = setInterval(pollForEvents, 3000);
+    pollForEvents();
+
+    // Cleanup function: clear interval when component unmounts
+    window.__tracklist_cleanup = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
       }
     };
   }
