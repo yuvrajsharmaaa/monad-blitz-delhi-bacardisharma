@@ -1,0 +1,20 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "env": {
+    "NEXT_PUBLIC_MONAD_RPC_URL": "@monad_rpc_url",
+    "NEXT_PUBLIC_MONAD_CHAIN_ID": "@monad_chain_id",
+    "NEXT_PUBLIC_MULTI_REMIX_ADDRESS": "@multi_remix_address",
+    "NEXT_PUBLIC_PRIZE_TOKEN_ADDRESS": "@prize_token_address",
+    "NEXT_PUBLIC_BACKEND_URL": "@backend_url"
+  },
+  "regions": ["iad1"],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ]
+}
