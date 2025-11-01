@@ -1,5 +1,5 @@
-import SingleTrackVoting from '@/components/SingleTrackVoting';
+import MVPTrackVoting from '@/components/MVPTrackVoting';
 
 export default function TrackVotingPage() {
-  return <SingleTrackVoting />;
+  return <MVPTrackVoting />;
 }

@@ -132,11 +132,13 @@ contract TrackVoting is ReentrancyGuard {
     /**
      * @dev End voting and distribute prize to winner
      * Only host can call this
+     * MVP: Optimized for immediate prize distribution
      */
     function endVoting() external nonReentrant {
         require(msg.sender == host, "Only host can end");
         require(votingActive, "Already ended");
         require(remixCount > 0, "No remixes submitted");
+        require(!prizeDistributed, "Prize already distributed");
         
         votingActive = false;
         
@@ -144,7 +146,7 @@ contract TrackVoting is ReentrancyGuard {
         uint256 maxVotes = 0;
         uint256 winnerRemixId = 0;
         
-        // O(n) scan using cached votes
+        // O(n) scan using cached votes (gas optimized)
         for (uint256 i = 1; i <= remixCount; i++) {
             if (voteCache[i] > maxVotes) {
                 maxVotes = voteCache[i];
@@ -160,7 +162,7 @@ contract TrackVoting is ReentrancyGuard {
         
         emit VotingEnded(winnerRemixId, winner, maxVotes);
         
-        // Distribute prize
+        // Immediate prize distribution in same transaction
         _distributePrize();
     }
     
