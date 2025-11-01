@@ -437,9 +437,57 @@ export default function MVPTrackVoting() {
         <p className="text-gray-300 text-lg">Single-page voting with instant prize distribution</p>
       </div>
 
+      {/* ENHANCED: Transaction State Banner with Real-time Progress */}
+      {txState && txState !== 'confirmed' && (
+        <div className={`mb-6 p-6 rounded-lg border-2 ${
+          txState === 'pending' ? 'bg-blue-900/50 border-blue-500 animate-pulse' :
+          txState === 'confirming' ? 'bg-yellow-900/50 border-yellow-500 animate-pulse' :
+          txState === 'failed' ? 'bg-red-900/50 border-red-500' :
+          'bg-gray-900/50 border-gray-500'
+        }`}>
+          <div className="flex items-center gap-4">
+            {/* Animated Spinner */}
+            {(txState === 'pending' || txState === 'confirming') && (
+              <div className="w-12 h-12 border-4 border-t-transparent border-white rounded-full animate-spin"></div>
+            )}
+            
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-2">
+                {txState === 'pending' && '📤 Transaction Pending...'}
+                {txState === 'confirming' && '⏳ Confirming Transaction...'}
+                {txState === 'failed' && '❌ Transaction Failed'}
+              </h3>
+              
+              <p className="text-sm text-gray-300 mb-2">
+                {txState === 'pending' && 'Waiting for wallet confirmation. Please check MetaMask.'}
+                {txState === 'confirming' && 'Transaction submitted to blockchain. Waiting for confirmation...'}
+                {txState === 'failed' && 'Transaction was rejected or failed. Please try again.'}
+              </p>
+              
+              {endVotingTxHash && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-xs text-gray-400">TX Hash:</span>
+                  <code className="text-xs bg-black/50 px-2 py-1 rounded font-mono">
+                    {endVotingTxHash.slice(0, 10)}...{endVotingTxHash.slice(-8)}
+                  </code>
+                  <a
+                    href={`https://testnet.monadexplorer.com/tx/${endVotingTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-400 hover:text-blue-300 underline"
+                  >
+                    View on Explorer
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Status Alert */}
       {txStatus && (
-        <div className={`mb-6 p-4 rounded-lg font-medium ${
+        <div className={`mb-6 p-4 rounded-lg font-medium whitespace-pre-line ${
           txStatus.includes('❌') ? 'bg-red-900/50 text-red-200 border border-red-500' :
           txStatus.includes('✅') ? 'bg-green-900/50 text-green-200 border border-green-500' :
           txStatus.includes('🏆') ? 'bg-yellow-900/50 text-yellow-200 border border-yellow-500' :
@@ -797,6 +845,8 @@ export default function MVPTrackVoting() {
           <li>• Host approves MON tokens</li>
           <li>• Host ends voting</li>
           <li>• Winner receives prize automatically in same transaction!</li>
+          <li>• <strong>Real-time updates:</strong> All events are tracked live via blockchain listeners</li>
+          <li>• <strong>Transaction tracking:</strong> See pending → confirming → confirmed states</li>
         </ul>
       </div>
     </div>
