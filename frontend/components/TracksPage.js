@@ -41,15 +41,7 @@ export default function TracksPage() {
     setShowUploadFor(null);
   };
 
-  // top-level tracks (no parentId)
   const parents = tracks.filter((t) => !t.parentId);
-  
-  console.log('Rendering TracksPage:', {
-    totalTracks: tracks.length,
-    parentTracks: parents.length,
-    tracks: tracks,
-    parents: parents
-  });
 
   return (
     <div>
@@ -103,18 +95,6 @@ export default function TracksPage() {
               onVote={() => fetchTracks()}
             />
           ))}
-        </div>
-      )}
-
-      {/* Debug view - show raw data */}
-      {!loading && !error && tracks.length > 0 && (
-        <div className="mt-8 p-4 bg-gray-800/50 rounded">
-          <details>
-            <summary className="cursor-pointer font-bold mb-2">🔍 Debug: Raw Track Data</summary>
-            <div className="max-h-96 overflow-auto text-xs">
-              <pre className="text-gray-300">{JSON.stringify(tracks, null, 2)}</pre>
-            </div>
-          </details>
         </div>
       )}
 
