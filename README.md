@@ -59,17 +59,37 @@ Prize Token:     0x3d6aC5D3FFae950a03Ea6B14387895Ddc9E631A5 (same)
 
 ## Architecture
 
+### Smart Contracts Overview
+
+#### 🗳️ **TrackVoting.sol** (Recommended for Single Track)
+Production-ready contract for **one track** with integrated voting and prize distribution:
+- One contract instance per track
+- Remix submissions, voting, and prize distribution all in one place
+- Host cannot submit remixes or vote (conflict of interest prevention)
+- Automatic winner selection and prize transfer on `endVoting()`
+- ReentrancyGuard security
+- Event-driven for real-time frontend updates
+
+#### 🏆 **RemixBattle.sol** (For Multi-Battle Platform)
+Scalable contract for multiple ongoing battles:
+- One contract manages many battles
+- Battle grid/discovery interface
+- Host can participate in battles
+- Leaderboard and rankings
+
+#### Supporting Contracts
+- **TestPrizeToken.sol**: ERC-20 prize token with faucet (MON on Monad)
+- **MusicNFT.sol**: ERC721 for track/remix NFTs (optional)
+- **VotingContract.sol**: Original voting system with memoization
+
 ### Dynamic Programming Optimizations
 
 1. **On-Chain Memoization**: Vote counts cached in `voteCache` mapping to avoid recomputation
 2. **Incremental Updates**: Votes update cache directly instead of full state scan
 3. **Frontend Caching**: Event listeners cache vote data to minimize RPC calls
-4. **Optimized Storage**: Only store essential data (IDs, IPFS hashes) on-chain
-
-### Smart Contracts
-
-- **MusicNFT.sol**: ERC721 contract for minting original tracks and remixes
-- **VotingContract.sol**: Voting system with `tallyVotes()` using memoization and `declareWinner()` using cached results
+4. **Optimized Storage**: Only store essential data (IDs, URIs) on-chain
+5. **O(1) Vote Access**: Cached votes accessible in constant time
+6. **O(n) Winner Selection**: Single pass through remixes to find winner
 
 ## ⚡ Quick Start
 
@@ -119,10 +139,28 @@ cd backend && node server.js
 ### Access the App
 
 1. Open http://localhost:3001
-2. Click **🏆 Remix Battles** tab
+2. Choose your mode:
+   - **🗳️ Track Voting** - Single track focus (recommended for MVP)
+   - **🏆 Remix Battles** - Multi-battle platform
 3. Connect MetaMask to Monad testnet (auto-configured)
-4. Click **Claim 100 PRIZE** to get test tokens
-5. Create a battle and start competing!
+4. Click **Claim 100 PRIZE** to get test MON tokens
+5. Start creating competitions!
+
+### Single Track Voting Flow (MVP)
+
+```bash
+# Navigate to Track Voting tab
+http://localhost:3001 → "🗳️ Track Voting"
+
+# Flow:
+1. Host deploys TrackVoting contract (or use existing)
+2. Remixers submit remixes on the same page
+3. Users vote for their favorite remix
+4. Host clicks "End Voting"
+5. Winner gets prize automatically!
+
+# Everything happens on ONE page - no navigation needed
+```
 
 ## 🎮 How to Use
 
@@ -175,12 +213,47 @@ npx hardhat run scripts/deployBattle.js --network monad
 
 ### Run Tests
 ```bash
+# Run all tests
 npx hardhat test
+
+# Run TrackVoting tests specifically
+npx hardhat test test/TrackVoting.test.js
+
+# Run with gas reporting
+REPORT_GAS=true npx hardhat test
 ```
 
 ### Check Services Status
 ```bash
 ./test-battle-system.sh
+```
+
+## 🧪 Testing
+
+### Test Coverage
+
+The **TrackVoting** contract has comprehensive test coverage:
+
+- ✅ **33 passing tests** covering all functionality
+- ✅ Deployment and initialization
+- ✅ Remix submission (with host exclusion)
+- ✅ Voting logic (one vote per wallet)
+- ✅ End voting and winner selection
+- ✅ Prize distribution
+- ✅ View functions and state queries
+- ✅ Edge cases (ties, single remix, etc.)
+- ✅ Gas optimization verification
+- ✅ Security (ReentrancyGuard, access control)
+
+### Run Tests
+
+```bash
+# All TrackVoting tests
+npx hardhat test test/TrackVoting.test.js
+
+# Expected output:
+# 33 passing tests ✅
+# Covers: submission, voting, ending, prize distribution
 ```
 
 ## 📁 Project Structure
@@ -234,9 +307,45 @@ npx hardhat test test/VotingContract.test.js
 
 ## 🎯 Key Features Explained
 
-### Remix Battle System
+### Single Track Voting (MVP - Recommended)
 
-The **RemixBattle** contract implements a complete competition lifecycle:
+The **TrackVoting** contract provides a streamlined, single-page voting experience:
+
+```solidity
+// Complete lifecycle on ONE track page
+
+// 1. Submit remix (anyone except host)
+function submitRemix(string calldata _remixURI) external
+
+// 2. Vote for remix (one vote per wallet)
+function vote(uint256 _remixId) external
+
+// 3. End voting & distribute prize (host only)
+function endVoting() external nonReentrant
+
+// 4. View all remixes with live vote counts
+function getAllRemixes() external view returns (
+    uint256[] memory ids,
+    address[] memory remixers,
+    string[] memory uris,
+    uint256[] memory votes
+)
+```
+
+**Key Benefits:**
+- ✅ Everything on one page (no navigation)
+- ✅ Real-time vote updates via events
+- ✅ Automatic prize distribution
+- ✅ Host-remixer separation (no conflicts)
+- ✅ Vote caching (gas optimized)
+- ✅ ReentrancyGuard security
+- ✅ One contract per track (simple deployment)
+
+**Use Case**: Artist uploads track → Remixers submit → Voters choose → Winner gets prize
+
+### Remix Battle System (Platform-Wide)
+
+The **RemixBattle** contract implements a multi-battle platform:
 
 ```solidity
 // 1. Create battle (locks prize tokens)
