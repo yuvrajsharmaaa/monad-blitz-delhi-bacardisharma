@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useWallet } from '../hooks/useWallet';
-import { getMusicNFTContract } from '../utils/contracts';
-import { uploadToIPFS, uploadMetadata } from '../utils/ipfs';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
+const BACKEND_ONLY = process.env.NEXT_PUBLIC_BACKEND_ONLY === 'true';
 
 export default function UploadTrack({ onUpload, remixOf = null }) {
-  const { signer, isConnected } = useWallet();
+  const { signer, isConnected, account } = useWallet();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [audioFile, setAudioFile] = useState(null);
@@ -15,72 +16,61 @@ export default function UploadTrack({ onUpload, remixOf = null }) {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file && (file.type === 'audio/mpeg' || file.type === 'audio/wav' || file.type === 'audio/mp3')) {
+    if (file && (file.type === 'audio/mpeg' || file.type === 'audio/wav' || file.type === 'audio/mp3' || file.type === 'audio/mp4')) {
       setAudioFile(file);
     } else {
-      alert('Please select a valid audio file (MP3/WAV)');
+      alert('Please select a valid audio file (MP3/WAV/MP4)');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isConnected || !signer) {
-      alert('Please connect your wallet');
-      return;
-    }
+    
     if (!audioFile) {
       alert('Please select an audio file');
       return;
     }
 
     setUploading(true);
-    setStatus('Uploading audio to IPFS...');
+    setStatus('Uploading to backend...');
 
     try {
-      // Upload audio file to backend
-      const audioFileId = await uploadToIPFS(audioFile);
-      setStatus('Audio uploaded! Creating metadata...');
-
-      // Create metadata
-      const metadata = {
-        title,
-        description,
-        creator: 'User', // Could fetch from wallet
-        creatorAddress: (await signer.getAddress()).toLowerCase(),
-        audioHash: audioFileId, // Use fileId instead of IPFS hash
-        metadataId: '',
-        timestamp: Date.now(),
-        type: remixOf ? 'remix' : 'original',
-        remixOf: remixOf || null,
-      };
-
-      // Upload metadata to backend
-      const metadataId = await uploadMetadata(metadata);
-      metadata.metadataId = metadataId;
-      setStatus('Minting NFT...');
-
-      // Mint NFT
-      const musicNFT = getMusicNFTContract(signer);
-      if (!musicNFT) {
-        throw new Error('Music NFT contract address not configured. Add NEXT_PUBLIC_MUSIC_NFT_ADDRESS to .env.local');
-      }
-
-      let tx;
+      // Upload to backend storage (no IPFS, no blockchain)
+      const formData = new FormData();
+      formData.append('file', audioFile);
+      formData.append('title', title || 'Untitled');
+      formData.append('description', description || '');
+      formData.append('artist', account || 'Unknown');
       if (remixOf) {
-        tx = await musicNFT.mintRemix(remixOf, metadataId);
-      } else {
-        tx = await musicNFT.mintOriginal(metadataId);
+        formData.append('parentId', remixOf);
       }
 
-      setStatus('Waiting for transaction confirmation...');
-      await tx.wait();
-      
+      const response = await fetch(`${BACKEND_URL}/api/tracks`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Upload failed');
+      }
+
+      const data = await response.json();
       setStatus('✅ Track uploaded successfully!');
+      
+      // Reset form
       setTitle('');
       setDescription('');
       setAudioFile(null);
       
+      // Notify parent
       if (onUpload) onUpload();
+      
+      // Reload page after short delay to show new track
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      
     } catch (error) {
       console.error('Upload error:', error);
       setStatus(`Error: ${error?.message || String(error)}`);
@@ -95,6 +85,11 @@ export default function UploadTrack({ onUpload, remixOf = null }) {
         <h2 className="text-2xl font-bold mb-6">
           {remixOf ? 'Upload Remix' : 'Upload Original Track'}
         </h2>
+        {BACKEND_ONLY && (
+          <div className="mb-4 p-3 bg-blue-900/30 border border-blue-500 rounded-lg text-sm">
+            ℹ️ Backend-only mode: Tracks are saved locally without blockchain/NFT minting
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2">Title</label>
@@ -116,10 +111,10 @@ export default function UploadTrack({ onUpload, remixOf = null }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Audio File (MP3/WAV)</label>
+            <label className="block text-sm font-medium mb-2">Audio File (MP3/WAV/MP4)</label>
             <input
               type="file"
-              accept="audio/mpeg,audio/wav,audio/mp3"
+              accept="audio/mpeg,audio/wav,audio/mp3,audio/mp4"
               onChange={handleFileChange}
               className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               required
@@ -127,7 +122,7 @@ export default function UploadTrack({ onUpload, remixOf = null }) {
           </div>
           <button
             type="submit"
-            disabled={uploading || !isConnected}
+            disabled={uploading}
             className="w-full px-4 py-2 bg-primary hover:bg-primary/90 rounded-lg transition disabled:opacity-50"
           >
             {uploading ? 'Uploading...' : 'Upload Track'}

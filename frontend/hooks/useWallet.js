@@ -9,6 +9,13 @@ export function useWallet() {
   const chainRequestPending = useRef(false);
 
   useEffect(() => {
+    const backendOnly = process.env.NEXT_PUBLIC_BACKEND_ONLY === 'true';
+    
+    // Skip wallet connection in backend-only mode
+    if (backendOnly) {
+      return;
+    }
+    
     checkConnection();
     
     // Listen for account changes

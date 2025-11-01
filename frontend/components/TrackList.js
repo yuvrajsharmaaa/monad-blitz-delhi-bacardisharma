@@ -13,10 +13,13 @@ export default function TrackList({ tracks, loading }) {
   const [selectedTrack, setSelectedTrack] = useState(null);
 
   useEffect(() => {
-    loadTracksAndCompetitions();
+    const backendOnly = process.env.NEXT_PUBLIC_BACKEND_ONLY === 'true';
     
-    // Set up event listeners for real-time updates
-    setupEventListeners();
+    if (!backendOnly) {
+      loadTracksAndCompetitions();
+      // Set up event listeners for real-time updates
+      setupEventListeners();
+    }
 
     // Cleanup event listeners on unmount
     return () => {

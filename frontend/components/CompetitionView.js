@@ -16,13 +16,17 @@ export default function CompetitionView({ trackId, voteCache, onBack }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadCompetitionData();
-    const cleanup = setupEventListeners();
+    const backendOnly = process.env.NEXT_PUBLIC_BACKEND_ONLY === 'true';
+    
+    if (!backendOnly) {
+      loadCompetitionData();
+      const cleanup = setupEventListeners();
 
-    // Cleanup event listeners on unmount
-    return () => {
-      if (cleanup) cleanup();
-    };
+      // Cleanup event listeners on unmount
+      return () => {
+        if (cleanup) cleanup();
+      };
+    }
   }, [trackId]);
 
   async function loadCompetitionData() {
