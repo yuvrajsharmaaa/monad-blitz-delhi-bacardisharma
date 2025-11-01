@@ -1,25 +1,54 @@
 # Music Remix Competition Platform on Monad
 
-A full-stack decentralized MVP for a music remix competition platform built on the Monad blockchain with dynamic programming optimizations for high performance.
+A full-stack decentralized platform for music remix competitions built on the Monad blockchain with on-chain voting, prize pools, and automatic winner determination.
 
-## Features
+## 🎯 Features
 
-- ✅ NFT minting for original tracks and remixes with IPFS metadata
-- ✅ On-chain voting with dynamic programming/memoization optimizations
-- ✅ IPFS integration for decentralized audio storage
-- ✅ Automatic prize distribution to winners
-- ✅ Real-time voting interface with live updates
-- ✅ Competition countdown timer and winner announcements
-- ✅ Responsive UI with Tailwind CSS
-- ✅ Gas-optimized smart contracts for Monad's parallel execution
+### Core Functionality
+- ✅ **NFT minting** for original tracks and remixes
+- ✅ **On-chain voting** with dynamic programming/memoization optimizations
+- ✅ **Remix Battles** with ERC-20 prize pools
+- ✅ **Automatic prize distribution** to winners
+- ✅ **Real-time leaderboards** with vote tracking
+- ✅ **Backend storage** option for rapid prototyping
+- ✅ **IPFS integration** for decentralized metadata
 
-## Tech Stack
+### Smart Contract Features
+- 🏆 **RemixBattle system** with create, submit, vote, end functions
+- 💰 **TestPrizeToken** (ERC-20) with public faucet
+- 🔒 **ReentrancyGuard** security on sensitive functions
+- ⚡ **Gas-optimized** for Monad's parallel execution
+- 📊 **Automatic winner calculation** and prize transfer
+
+### UI Features
+- 🎨 **Responsive design** with Tailwind CSS
+- 🎵 **Audio player** for track preview
+- 🏅 **Leaderboard** with medals (🥇🥈🥉)
+- 💾 **Backend-only mode** (no wallet required for testing)
+- 🔗 **MetaMask integration** with auto-network switching
+
+## 🛠️ Tech Stack
 
 - **Smart Contracts**: Solidity 0.8.24, OpenZeppelin, Hardhat
-- **Frontend**: Next.js 14, React 18, ethers.js 6
-- **Storage**: IPFS (decentralized file storage)
-- **Blockchain**: Monad Testnet
+- **Frontend**: Next.js 14.2.33, React 18, ethers.js 6, Tailwind CSS
+- **Backend**: Express.js with multer for file uploads
+- **Storage**: Backend filesystem + optional IPFS
+- **Blockchain**: Monad Testnet (Chain ID: 10143)
 - **Testing**: Mocha, Chai
+
+## 🚀 Deployed Contracts (Monad Testnet)
+
+```
+PRIZE Token:     0x3d6aC5D3FFae950a03Ea6B14387895Ddc9E631A5
+RemixBattle:     0xDC642fC6f697E524Ac4d8EFADD80C459297aa4B2
+MusicNFT:        0x21D652731fd29111714D60d99b641d52aF8D1251
+VotingContract:  0x1dE4545be0a494716153F1Adb505F629905159C3
+```
+
+**Network Details:**
+- RPC: `https://testnet-rpc.monad.xyz`
+- Chain ID: `10143`
+- Network Name: `Monad Testnet`
 
 ## Architecture
 
@@ -35,13 +64,13 @@ A full-stack decentralized MVP for a music remix competition platform built on t
 - **MusicNFT.sol**: ERC721 contract for minting original tracks and remixes
 - **VotingContract.sol**: Voting system with `tallyVotes()` using memoization and `declareWinner()` using cached results
 
-## Quick Start
+## ⚡ Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- Monad-compatible wallet (MetaMask)
-- IPFS gateway access (public gateway used by default)
+- MetaMask or compatible Web3 wallet
+- Git
 
 ### Installation
 
@@ -57,69 +86,133 @@ npm install
 cd frontend
 npm install
 cd ..
+
+# Backend dependencies
+cd backend
+npm install
+cd ..
 ```
 
-### Configuration
+### Run the Application
 
-1. Create `.env` in root directory:
+**Option 1: Use the helper script (recommended)**
 ```bash
-MONAD_RPC_URL=https://testnet-rpc.monad.xyz
-MONAD_CHAIN_ID=10143
-PRIVATE_KEY=your_private_key_here
+./start-dev.sh
 ```
 
-2. Create `frontend/.env.local`:
+**Option 2: Manual start**
 ```bash
-NEXT_PUBLIC_MUSIC_NFT_ADDRESS=
-NEXT_PUBLIC_VOTING_CONTRACT_ADDRESS=
-NEXT_PUBLIC_MONAD_RPC_URL=https://testnet-rpc.monad.xyz
-NEXT_PUBLIC_MONAD_CHAIN_ID=10143
+# Terminal 1 - Frontend (http://localhost:3001)
+cd frontend && npm run dev
+
+# Terminal 2 - Backend (http://localhost:3002)
+cd backend && node server.js
 ```
 
-### Deployment
+### Access the App
 
+1. Open http://localhost:3001
+2. Click **🏆 Remix Battles** tab
+3. Connect MetaMask to Monad testnet (auto-configured)
+4. Click **Claim 100 PRIZE** to get test tokens
+5. Create a battle and start competing!
+
+## 🎮 How to Use
+
+### 1. Get Test Tokens
+- Navigate to **Remix Battles** tab
+- Click **Claim 100 PRIZE** button
+- Confirm transaction in MetaMask
+
+### 2. Create a Battle
+- Click **Create Battle**
+- Enter track URI (e.g., `ipfs://...` or `http://...`)
+- Enter prize amount (e.g., `50` for 50 PRIZE tokens)
+- Approve token spending (first time only)
+- Confirm battle creation
+
+### 3. Submit a Remix
+- Find an active battle
+- Click **Submit Remix**
+- Enter your remix URI
+- Confirm transaction
+
+### 4. Vote
+- Expand a battle to see submissions
+- Click **Vote** on your favorite
+- Confirm transaction
+- Only one vote per address per battle!
+
+### 5. End Battle & Claim Prize
+- Battle host clicks **End Battle**
+- Contract automatically:
+  - Tallies votes
+  - Finds winner
+  - Transfers prize to winner
+- Winner declared on-chain!
+
+## 🔧 Development
+
+### Compile Contracts
 ```bash
-# Compile contracts
-npm run compile
-
-# Deploy to Monad testnet
-npx hardhat run scripts/deploy.js --network monad
-
-# Copy deployed addresses to frontend/.env.local
-# Then create a competition:
-npx hardhat run scripts/createCompetition.js --network monad <trackId> <durationSeconds> <prizeAmountInETH>
+npx hardhat compile
 ```
 
-### Run Frontend
-
+### Deploy to Monad Testnet
 ```bash
-cd frontend
-npm run dev
+# Deploy all contracts (RemixBattle + PrizeToken + MusicNFT + Voting)
+npx hardhat run scripts/deployBattle.js --network monad
+
+# Update frontend/.env.local with deployed addresses
 ```
 
-Visit `http://localhost:3000`
+### Run Tests
+```bash
+npx hardhat test
+```
 
-## Project Structure
+### Check Services Status
+```bash
+./test-battle-system.sh
+```
+
+## 📁 Project Structure
 
 ```
 ├── contracts/
 │   ├── MusicNFT.sol           # NFT minting contract
-│   └── VotingContract.sol    # Voting with dynamic programming
+│   ├── VotingContract.sol     # Voting with dynamic programming
+│   ├── RemixBattle.sol        # 🏆 Battle system with prizes
+│   └── TestPrizeToken.sol     # ERC-20 token with faucet
 ├── frontend/
-│   ├── app/                   # Next.js pages
-│   ├── components/            # React components
-│   ├── hooks/                 # Custom hooks (wallet)
-│   └── utils/                 # Utilities (contracts, IPFS)
+│   ├── app/
+│   │   ├── page.js            # Main page with tabs
+│   │   ├── tracks/page.js     # Tracks listing
+│   │   └── battles/page.js    # 🏆 Battles page
+│   ├── components/
+│   │   ├── RemixBattlePage.js # Battle arena UI
+│   │   ├── BattleCard.js      # Individual battle display
+│   │   ├── CreateBattleModal.js # Battle creation form
+│   │   ├── TrackCard.js       # Track with remixes
+│   │   └── ... (more components)
+│   ├── hooks/
+│   │   └── useWallet.js       # Wallet connection hook
+│   └── utils/
+│       ├── contracts.js       # Contract ABIs
+│       ├── remixBattle.js     # 🏆 Battle utils
+│       └── ipfs.js            # IPFS/backend integration
+├── backend/
+│   ├── server.js              # Express server
+│   ├── uploads/               # Audio files storage
+│   └── data/tracks.json       # Track metadata
 ├── scripts/
-│   ├── deploy.js              # Contract deployment
-│   └── createCompetition.js   # Competition creation script
+│   ├── deploy.js              # Original deployment
+│   ├── deployBattle.js        # 🏆 Battle system deployment
+│   └── createCompetition.js   # Competition creation
 ├── test/
-│   ├── MusicNFT.test.js       # NFT contract tests
-│   └── VotingContract.test.js # Voting contract tests
-├── ipfs/
-│   ├── ipfs-client.js         # IPFS upload/download
-│   └── metadata-schema.js     # Metadata schemas
-└── hardhat.config.js          # Hardhat configuration
+│   ├── MusicNFT.test.js       # NFT tests
+│   └── VotingContract.test.js # Voting tests
+└── hardhat.config.js          # Hardhat config
 ```
 
 ## Testing
@@ -132,7 +225,34 @@ npm test
 npx hardhat test test/VotingContract.test.js
 ```
 
-## Key Features Explained
+## 🎯 Key Features Explained
+
+### Remix Battle System
+
+The **RemixBattle** contract implements a complete competition lifecycle:
+
+```solidity
+// 1. Create battle (locks prize tokens)
+function createBattle(string memory trackURI, uint256 prizeAmount)
+
+// 2. Submit remixes (excludes host)
+function submitRemix(uint256 battleId, string memory remixURI)
+
+// 3. Vote (one vote per address)
+function voteRemix(uint256 battleId, uint256 submissionId)
+
+// 4. End battle (automatic prize distribution)
+function endBattle(uint256 battleId)
+
+// 5. Get leaderboard (sorted by votes)
+function getBattleLeaderboard(uint256 battleId)
+```
+
+**Security Features:**
+- `ReentrancyGuard` on sensitive functions
+- Host cannot submit to own battle
+- Prize locked until battle ends
+- Automatic winner determination
 
 ### Dynamic Programming in Voting
 
@@ -153,26 +273,83 @@ function tallyVotes(...) {
 }
 ```
 
-### IPFS Integration
+### Backend-Only Mode
 
-- Audio files (MP3/WAV) uploaded to IPFS
-- Metadata JSON stored on IPFS
-- Only IPFS hashes stored on-chain
-- Frontend fetches files from IPFS gateways
+Toggle between Web3 and traditional backend:
+
+- **Backend-Only** (`NEXT_PUBLIC_BACKEND_ONLY=true`):
+  - No wallet required
+  - Fast local storage
+  - Great for prototyping
+  
+- **Web3 Mode** (`NEXT_PUBLIC_BACKEND_ONLY=false`):
+  - Full blockchain integration
+  - NFT minting
+  - On-chain voting
+  - Prize distribution
 
 ### Monad Optimizations
 
-- Minimal on-chain storage
+- Minimal on-chain storage (only IDs and hashes)
 - Incremental state updates
 - Event-driven architecture
-- Optimized for parallel execution
+- Gas-optimized for parallel execution
+- Fast transactions (~400ms on Monad testnet)
 
-## Documentation
+## 📚 Documentation
 
-- [Deployment Guide](./DEPLOYMENT.md)
-- [Contributing](./CONTRIBUTING.md)
+- **[BATTLE_SYSTEM_COMPLETE.md](./BATTLE_SYSTEM_COMPLETE.md)** - Implementation summary
+- **[REMIX_BATTLE_GUIDE.md](./REMIX_BATTLE_GUIDE.md)** - Complete battle guide
+- **[RUN_PROJECT.md](./RUN_PROJECT.md)** - Development setup
+- **[DEPLOY_MONAD_TESTNET.md](./DEPLOY_MONAD_TESTNET.md)** - Deployment guide
+- **[QUICKSTART.md](./QUICKSTART.md)** - Quick start guide
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Contribution guidelines
 
-## License
+## 🎊 What You Get
+
+1. ✅ **Full On-Chain Remix Competitions** with prize pools
+2. ✅ **ERC-20 Prize Token** with public faucet
+3. ✅ **Automatic Prize Distribution** to winners
+4. ✅ **Fair Voting System** (one vote per wallet)
+5. ✅ **Production-Ready UI** (responsive, clean design)
+6. ✅ **Monad-Optimized** (fast, low-cost transactions)
+7. ✅ **Complete Documentation** (user + developer guides)
+8. ✅ **Backend Storage Option** (rapid prototyping)
+
+## 🐛 Troubleshooting
+
+### "Insufficient allowance"
+Run the faucet first or approve PRIZE tokens before creating a battle.
+
+### "Already voted"
+You can only vote once per battle per wallet address.
+
+### "Host cannot submit remix"
+Battle hosts cannot participate in their own competitions.
+
+### Frontend not loading
+Check that both frontend (3001) and backend (3002) are running:
+```bash
+./test-battle-system.sh
+```
+
+## 🤝 Contributing
+
+Contributions welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) first.
+
+## 📄 License
 
 MIT
+
+## 🙏 Acknowledgments
+
+Built on:
+- **Monad** - High-performance blockchain
+- **OpenZeppelin** - Secure smart contracts
+- **Next.js** - React framework
+- **ethers.js** - Ethereum library
+
+---
+
+**🏆 Start your remix battle on Monad testnet today!**
 

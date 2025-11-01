@@ -7,6 +7,7 @@ import TrackList from '../components/TrackList';
 import TracksPage from '../components/TracksPage';
 import UploadTrack from '../components/UploadTrack';
 import RemixBattlePage from '../components/RemixBattlePage';
+import SingleTrackVoting from '../components/SingleTrackVoting';
 
 export default function Home() {
   const [tracks, setTracks] = useState([]);
@@ -91,6 +92,16 @@ export default function Home() {
             >
               🏆 Remix Battles
             </button>
+            <button
+              onClick={() => setActiveTab('voting')}
+              className={`px-4 py-2 ${
+                activeTab === 'voting'
+                  ? 'border-b-2 border-primary text-primary'
+                  : 'text-gray-400'
+              }`}
+            >
+              🗳️ Track Voting
+            </button>
           </div>
         </div>
 
@@ -99,6 +110,7 @@ export default function Home() {
         )}
         {activeTab === 'upload' && <UploadTrack onUpload={loadTracks} />}
         {activeTab === 'battles' && <RemixBattlePage />}
+        {activeTab === 'voting' && <SingleTrackVoting />}
       </main>
     </div>
   );
