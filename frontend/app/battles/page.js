@@ -1,6 +1,6 @@
-import SimplifiedRemixBattle from '@/components/SimplifiedRemixBattle';
+import SimplifiedRemixContestMVP from '@/components/SimplifiedRemixContestMVP';
 
 export default function BattlesPage() {
-  return <SimplifiedRemixBattle />;
+  return <SimplifiedRemixContestMVP />;
 }
 
