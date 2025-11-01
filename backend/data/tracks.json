@@ -12,7 +12,7 @@
       "fileUrl": "http://localhost:3002/api/files/1761992000275-57913239.mp3",
       "parentId": null,
       "onChainTrackId": null,
-      "voteCount": 0,
+      "voteCount": 1,
       "createdAt": "2025-11-01T10:13:20.277Z"
     },
     {
@@ -29,6 +29,21 @@
       "onChainTrackId": null,
       "voteCount": 0,
       "createdAt": "2025-11-01T10:17:27.510Z"
+    },
+    {
+      "id": "1761992737445",
+      "title": "duad",
+      "description": "dada",
+      "artist": "Unknown",
+      "filename": "1761992737443-369311153.mp3",
+      "originalName": "Voicy_Audio Piano.mp3",
+      "fileSize": 504872,
+      "mimeType": "audio/mpeg",
+      "fileUrl": "http://localhost:3002/api/files/1761992737443-369311153.mp3",
+      "parentId": "1761992000277",
+      "onChainTrackId": null,
+      "voteCount": 2,
+      "createdAt": "2025-11-01T10:25:37.445Z"
     }
   ]
 }
