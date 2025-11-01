@@ -24,10 +24,10 @@ async function main() {
   const musicNFTAddress = await musicNFT.getAddress();
   console.log("✓ MusicNFT deployed to:", musicNFTAddress);
 
-  // Deploy VotingContract
-  console.log("\n3. Deploying VotingContract...");
-  const VotingContract = await hre.ethers.getContractFactory("VotingContract");
-  const votingContract = await VotingContract.deploy();
+  // 3. Deploy VotingContract
+  console.log('3. Deploying VotingContract...');
+  const VotingContract = await ethers.getContractFactory('VotingContract');
+  const votingContract = await VotingContract.deploy(await musicNFT.getAddress());
   await votingContract.waitForDeployment();
   const votingAddress = await votingContract.getAddress();
   console.log("✓ VotingContract deployed to:", votingAddress);
