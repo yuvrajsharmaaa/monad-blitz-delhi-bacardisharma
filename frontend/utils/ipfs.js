@@ -1,51 +1,89 @@
 /**
- * Frontend IPFS utilities
- * Handles uploading to IPFS via HTTP API
+ * Frontend storage utilities
+ * Handles uploading to local backend server (replaces IPFS)
  */
 
-const IPFS_GATEWAY = 'https://ipfs.io/ipfs/';
-const IPFS_API = 'https://api.ipfs.io/api/v0';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
 
+/**
+ * Upload audio file to backend
+ * @param {File} file - Audio file to upload
+ * @returns {Promise<string>} - File ID
+ */
 export async function uploadToIPFS(file) {
   try {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${IPFS_API}/add`, {
+    const response = await fetch(`${BACKEND_URL}/api/upload`, {
       method: 'POST',
       body: formData,
     });
 
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`);
+    }
+
     const data = await response.json();
-    return data.Hash;
+    return data.fileId; // Return fileId instead of IPFS hash
   } catch (error) {
-    console.error('IPFS upload error:', error);
+    console.error('File upload error:', error);
     throw error;
   }
 }
 
+/**
+ * Upload metadata to backend
+ * @param {Object} metadata - Metadata object
+ * @returns {Promise<string>} - Metadata ID
+ */
 export async function uploadMetadata(metadata) {
   try {
-    const blob = new Blob([JSON.stringify(metadata)], { type: 'application/json' });
-    const file = new File([blob], 'metadata.json');
-    return await uploadToIPFS(file);
+    const response = await fetch(`${BACKEND_URL}/api/metadata`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(metadata),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Metadata upload failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.metadataId; // Return metadataId
   } catch (error) {
     console.error('Metadata upload error:', error);
     throw error;
   }
 }
 
-export function getIPFSURL(hash) {
-  return `${IPFS_GATEWAY}${hash}`;
+/**
+ * Get file URL from backend
+ * @param {string} fileId - File ID
+ * @returns {string} - Full URL to file
+ */
+export function getIPFSURL(fileId) {
+  return `${BACKEND_URL}/api/files/${fileId}`;
 }
 
-export async function fetchFromIPFS(hash) {
+/**
+ * Fetch metadata from backend
+ * @param {string} metadataId - Metadata ID
+ * @returns {Promise<Object>} - Metadata object
+ */
+export async function fetchFromIPFS(metadataId) {
   try {
-    const url = getIPFSURL(hash);
-    const response = await fetch(url);
+    const response = await fetch(`${BACKEND_URL}/api/metadata/${metadataId}`);
+    
+    if (!response.ok) {
+      throw new Error(`Metadata fetch failed: ${response.statusText}`);
+    }
+
     return await response.json();
   } catch (error) {
-    console.error('IPFS fetch error:', error);
+    console.error('Metadata fetch error:', error);
     throw error;
   }
 }

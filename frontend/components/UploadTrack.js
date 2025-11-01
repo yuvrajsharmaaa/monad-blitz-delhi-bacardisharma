@@ -37,8 +37,8 @@ export default function UploadTrack({ onUpload, remixOf = null }) {
     setStatus('Uploading audio to IPFS...');
 
     try {
-      // Upload audio file to IPFS
-      const audioHash = await uploadToIPFS(audioFile);
+      // Upload audio file to backend
+      const audioFileId = await uploadToIPFS(audioFile);
       setStatus('Audio uploaded! Creating metadata...');
 
       // Create metadata
@@ -47,16 +47,16 @@ export default function UploadTrack({ onUpload, remixOf = null }) {
         description,
         creator: 'User', // Could fetch from wallet
         creatorAddress: (await signer.getAddress()).toLowerCase(),
-        audioHash,
-        ipfsHash: '',
+        audioHash: audioFileId, // Use fileId instead of IPFS hash
+        metadataId: '',
         timestamp: Date.now(),
         type: remixOf ? 'remix' : 'original',
         remixOf: remixOf || null,
       };
 
-      // Upload metadata to IPFS
-      const metadataHash = await uploadMetadata(metadata);
-      metadata.ipfsHash = metadataHash;
+      // Upload metadata to backend
+      const metadataId = await uploadMetadata(metadata);
+      metadata.metadataId = metadataId;
       setStatus('Minting NFT...');
 
       // Mint NFT
@@ -67,9 +67,9 @@ export default function UploadTrack({ onUpload, remixOf = null }) {
 
       let tx;
       if (remixOf) {
-        tx = await musicNFT.mintRemix(remixOf, metadataHash);
+        tx = await musicNFT.mintRemix(remixOf, metadataId);
       } else {
-        tx = await musicNFT.mintOriginal(metadataHash);
+        tx = await musicNFT.mintOriginal(metadataId);
       }
 
       setStatus('Waiting for transaction confirmation...');
