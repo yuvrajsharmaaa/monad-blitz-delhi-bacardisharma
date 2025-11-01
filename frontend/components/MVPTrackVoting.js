@@ -28,6 +28,16 @@ export default function MVPTrackVoting() {
   const [winner, setWinner] = useState('');
   const [winningRemixId, setWinningRemixId] = useState(0);
   
+  // NEW: Enhanced winner data from VotingEnded event
+  const [winnerVoteCount, setWinnerVoteCount] = useState(0);
+  const [prizeDistributedAmount, setPrizeDistributedAmount] = useState('0');
+  const [endVotingTxHash, setEndVotingTxHash] = useState('');
+  const [prizeDistributionTxHash, setPrizeDistributionTxHash] = useState('');
+  
+  // NEW: Transaction state tracking
+  const [txState, setTxState] = useState(''); // 'pending', 'confirming', 'confirmed', 'failed'
+  const [showVictoryPanel, setShowVictoryPanel] = useState(false);
+  
   // Remixes and votes
   const [remixes, setRemixes] = useState([]);
   const [hasVoted, setHasVoted] = useState(false);
