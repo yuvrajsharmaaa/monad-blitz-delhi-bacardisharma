@@ -22,13 +22,19 @@ const VOTING_CONTRACT_ABI = [
 
 export function getMusicNFTContract(signer) {
   const address = process.env.NEXT_PUBLIC_MUSIC_NFT_ADDRESS;
-  if (!address) throw new Error('Music NFT address not configured');
+  if (!address) {
+    // Return null when not configured so frontend can handle missing addresses
+    return null;
+  }
   return new ethers.Contract(address, MUSIC_NFT_ABI, signer);
 }
 
 export function getVotingContract(signer) {
   const address = process.env.NEXT_PUBLIC_VOTING_CONTRACT_ADDRESS;
-  if (!address) throw new Error('Voting contract address not configured');
+  if (!address) {
+    // Return null when not configured so frontend can handle missing addresses
+    return null;
+  }
   return new ethers.Contract(address, VOTING_CONTRACT_ABI, signer);
 }
 
@@ -37,7 +43,7 @@ export function getVotingContract(signer) {
  */
 export function getMusicNFTContractReadOnly(provider) {
   const address = process.env.NEXT_PUBLIC_MUSIC_NFT_ADDRESS;
-  if (!address) throw new Error('Music NFT address not configured');
+  if (!address) return null;
   return new ethers.Contract(address, MUSIC_NFT_ABI, provider);
 }
 
@@ -46,7 +52,7 @@ export function getMusicNFTContractReadOnly(provider) {
  */
 export function getVotingContractReadOnly(provider) {
   const address = process.env.NEXT_PUBLIC_VOTING_CONTRACT_ADDRESS;
-  if (!address) throw new Error('Voting contract address not configured');
+  if (!address) return null;
   return new ethers.Contract(address, VOTING_CONTRACT_ABI, provider);
 }
 
