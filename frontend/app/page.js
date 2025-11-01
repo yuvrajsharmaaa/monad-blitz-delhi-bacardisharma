@@ -105,9 +105,7 @@ export default function Home() {
           </div>
         </div>
 
-        {activeTab === 'tracks' && (
-          backendOnly ? <TracksPage /> : <TrackList tracks={tracks} loading={loading} />
-        )}
+        {activeTab === 'tracks' && <TracksPage />}
         {activeTab === 'upload' && <UploadTrack onUpload={loadTracks} />}
         {activeTab === 'battles' && <MultiRemixBattle />}
         {activeTab === 'voting' && <SingleTrackVoting />}

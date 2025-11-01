@@ -1,8 +1,8 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Music Remix Competition - Monad',
-  description: 'Decentralized music remix competition platform on Monad blockchain',
+  title: 'SONAD - Sound on Monad',
+  description: 'Decentralized music platform and remix competitions on Monad blockchain',
 };
 
 export default function RootLayout({ children }) {

@@ -336,9 +336,12 @@ export default function MultiRemixBattle() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            🎵 Multi-Remix Battle
-          </h1>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <img src="/logo.png" alt="SONAD" className="h-16 w-16" />
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              SONAD Remix Battles
+            </h1>
+          </div>
           <p className="text-gray-300">Multiple submissions, community voting, winner takes prize!</p>
           {!MULTI_REMIX_ADDRESS && (
             <div className="mt-4 p-4 bg-red-900/50 rounded-lg">

@@ -50,12 +50,19 @@ export default function TracksPage() {
 
   // top-level tracks (no parentId)
   const parents = tracks.filter((t) => !t.parentId);
+  
+  console.log('Rendering TracksPage:', {
+    totalTracks: tracks.length,
+    parentTracks: parents.length,
+    tracks: tracks,
+    parents: parents
+  });
 
   return (
     <div>
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-2xl font-bold">
-          Tracks ({parents.length})
+          Tracks ({parents.length}) - Total: {tracks.length}
         </h2>
         <button
           onClick={fetchTracks}
@@ -78,25 +85,45 @@ export default function TracksPage() {
         </div>
       )}
 
-      {!loading && !error && parents.length === 0 && (
-        <div className="text-center py-12 text-gray-400">
-          <p className="text-xl mb-2">No tracks yet</p>
-          <p>Upload a track to get started!</p>
-          <p className="text-sm mt-4">Total tracks in backend: {tracks.length}</p>
+      {!loading && !error && tracks.length > 0 && parents.length === 0 && (
+        <div className="bg-yellow-800/40 text-yellow-200 p-4 rounded mb-4">
+          <p className="font-bold">⚠️ {tracks.length} tracks loaded but all are remixes (no parent tracks)</p>
+          <p className="text-sm mt-2">All tracks have parentId set</p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {parents.map((track) => (
-          <TrackCard
-            key={track.id}
-            track={track}
-            remixes={tracks.filter((r) => r.parentId === track.id)}
-            onOpenRemix={() => setShowUploadFor(track.id)}
-            onVote={() => fetchTracks()}
-          />
-        ))}
-      </div>
+      {!loading && !error && tracks.length === 0 && (
+        <div className="text-center py-12 text-gray-400">
+          <p className="text-xl mb-2">No tracks yet</p>
+          <p>Upload a track to get started!</p>
+        </div>
+      )}
+
+      {!loading && !error && parents.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {parents.map((track) => (
+            <TrackCard
+              key={track.id}
+              track={track}
+              remixes={tracks.filter((r) => r.parentId === track.id)}
+              onOpenRemix={() => setShowUploadFor(track.id)}
+              onVote={() => fetchTracks()}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Debug view - show raw data */}
+      {!loading && !error && tracks.length > 0 && (
+        <div className="mt-8 p-4 bg-gray-800/50 rounded">
+          <details>
+            <summary className="cursor-pointer font-bold mb-2">🔍 Debug: Raw Track Data</summary>
+            <div className="max-h-96 overflow-auto text-xs">
+              <pre className="text-gray-300">{JSON.stringify(tracks, null, 2)}</pre>
+            </div>
+          </details>
+        </div>
+      )}
 
       {showUploadFor && (
         <RemixUploadModal

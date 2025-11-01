@@ -9,7 +9,10 @@ export default function Header() {
   return (
     <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
       <div className="container mx-auto flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-primary">🎵 Remix Competition</h1>
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="SONAD" className="h-10 w-10" />
+          <h1 className="text-2xl font-bold text-primary">SONAD</h1>
+        </div>
         {!backendOnly && (
           <div className="flex items-center gap-4">
             {isConnected ? (
