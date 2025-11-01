@@ -173,14 +173,16 @@ export default function MVPTrackVoting() {
     }
   };
 
-  // Setup event listeners
+  // Setup event listeners with enhanced VotingEnded handling
   const setupEventListeners = (votingContract) => {
+    // RemixSubmitted event
     votingContract.on('RemixSubmitted', (remixId, remixer, uri) => {
       console.log('✅ Remix submitted:', remixId, remixer);
       loadRemixes(votingContract);
       setTxStatus(`✅ Remix #${remixId} submitted successfully!`);
     });
     
+    // VoteCast event
     votingContract.on('VoteCast', (voter, remixId, voteCount) => {
       console.log('✅ Vote cast:', voter, remixId, voteCount);
       loadRemixes(votingContract);
@@ -191,18 +193,75 @@ export default function MVPTrackVoting() {
       }
     });
     
-    votingContract.on('VotingEnded', (winningId, winnerAddr, voteCount) => {
-      console.log('🏆 Voting ended:', winningId, winnerAddr, voteCount);
-      setVotingActive(false);
-      setWinner(winnerAddr);
-      setWinningRemixId(Number(winningId));
-      setTxStatus(`🏆 Voting ended! Winner: Remix #${winningId} with ${voteCount} votes!`);
+    // ENHANCED: VotingEnded event with complete winner data
+    votingContract.on('VotingEnded', async (winningId, winnerAddr, voteCount, event) => {
+      console.log('🏆 VotingEnded event received:', {
+        winningId: winningId.toString(),
+        winnerAddr,
+        voteCount: voteCount.toString()
+      });
+      
+      try {
+        // Update state with winner information
+        setVotingActive(false);
+        setWinner(winnerAddr);
+        setWinningRemixId(Number(winningId));
+        setWinnerVoteCount(Number(voteCount));
+        
+        // Get transaction hash from event
+        const txHash = event.log.transactionHash;
+        setEndVotingTxHash(txHash);
+        
+        // Show transaction state
+        setTxState('confirming');
+        setTxStatus(`🏆 Voting ended! Winner: Remix #${winningId} with ${voteCount} votes. Confirming transaction...`);
+        
+        // Wait for transaction confirmation
+        const tx = await event.log.getTransaction();
+        const receipt = await tx.wait();
+        
+        setTxState('confirmed');
+        console.log('✅ VotingEnded transaction confirmed:', receipt.hash);
+        
+        // Show victory panel
+        setShowVictoryPanel(true);
+        setTxStatus(`✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
+        
+      } catch (error) {
+        console.error('Error processing VotingEnded event:', error);
+        setTxState('failed');
+        setTxStatus(`❌ Error processing voting end: ${error.message}`);
+      }
     });
     
-    votingContract.on('PrizeDistributed', (winnerAddr, amount) => {
-      console.log('💰 Prize distributed:', winnerAddr, amount);
-      setPrizeDistributed(true);
-      setTxStatus(`💰 ${ethers.formatEther(amount)} MON sent to ${winnerAddr.slice(0, 6)}...${winnerAddr.slice(-4)}!`);
+    // ENHANCED: PrizeDistributed event with transaction tracking
+    votingContract.on('PrizeDistributed', async (winnerAddr, amount, event) => {
+      console.log('💰 PrizeDistributed event received:', {
+        winner: winnerAddr,
+        amount: ethers.formatEther(amount)
+      });
+      
+      try {
+        setPrizeDistributed(true);
+        setPrizeDistributedAmount(ethers.formatEther(amount));
+        
+        // Get transaction hash
+        const txHash = event.log.transactionHash;
+        setPrizeDistributionTxHash(txHash);
+        
+        // Update status
+        setTxStatus(`💰 Prize distributed! ${ethers.formatEther(amount)} MON sent to winner!`);
+        
+        // Wait for confirmation
+        const tx = await event.log.getTransaction();
+        const receipt = await tx.wait();
+        
+        console.log('✅ Prize distribution confirmed:', receipt.hash);
+        setTxStatus(`✅ Prize sent successfully! TX: ${receipt.hash.slice(0, 10)}...${receipt.hash.slice(-8)}`);
+        
+      } catch (error) {
+        console.error('Error processing PrizeDistributed event:', error);
+      }
     });
     
     return () => votingContract.removeAllListeners();
@@ -271,7 +330,7 @@ export default function MVPTrackVoting() {
     }
   };
 
-  // End voting
+  // ENHANCED: End voting with real-time transaction state tracking
   const handleEndVoting = async () => {
     if (!contract || !signer) return;
     
@@ -282,17 +341,89 @@ export default function MVPTrackVoting() {
     }
     
     setLoading(true);
-    setTxStatus('🏁 Ending voting and distributing prize...');
+    setTxState('pending');
+    setTxStatus('🏁 Submitting transaction to end voting...');
     
     try {
       const votingWithSigner = contract.connect(signer);
+      
+      // Submit transaction
+      console.log('📤 Submitting endVoting transaction...');
       const tx = await votingWithSigner.endVoting();
-      setTxStatus('⏳ Transaction pending... This will select winner and send prize!');
-      await tx.wait();
-      // Event listeners will update UI
+      
+      setTxState('confirming');
+      setEndVotingTxHash(tx.hash);
+      setTxStatus(`⏳ Transaction submitted! Hash: ${tx.hash.slice(0, 10)}...${tx.hash.slice(-8)}\n⏳ Waiting for confirmation (this will select winner and distribute prize)...`);
+      
+      console.log('⏳ Transaction sent:', tx.hash);
+      console.log('⏳ Waiting for confirmation...');
+      
+      // Wait for confirmation
+      const receipt = await tx.wait();
+      
+      setTxState('confirmed');
+      console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
+      setTxStatus(`✅ Transaction confirmed in block ${receipt.blockNumber}! Processing events...`);
+      
+      // Parse logs to extract VotingEnded event data
+      const votingEndedEvent = receipt.logs.find(log => {
+        try {
+          const parsed = contract.interface.parseLog(log);
+          return parsed && parsed.name === 'VotingEnded';
+        } catch {
+          return false;
+        }
+      });
+      
+      if (votingEndedEvent) {
+        const parsed = contract.interface.parseLog(votingEndedEvent);
+        const [winningId, winnerAddr, voteCount] = parsed.args;
+        
+        console.log('🏆 VotingEnded event data:', {
+          winnerId: winningId.toString(),
+          winner: winnerAddr,
+          votes: voteCount.toString()
+        });
+        
+        // Update state with complete winner data
+        setWinningRemixId(Number(winningId));
+        setWinner(winnerAddr);
+        setWinnerVoteCount(Number(voteCount));
+        setShowVictoryPanel(true);
+        setVotingActive(false);
+      }
+      
+      // Parse PrizeDistributed event
+      const prizeEvent = receipt.logs.find(log => {
+        try {
+          const parsed = contract.interface.parseLog(log);
+          return parsed && parsed.name === 'PrizeDistributed';
+        } catch {
+          return false;
+        }
+      });
+      
+      if (prizeEvent) {
+        const parsed = contract.interface.parseLog(prizeEvent);
+        const [winnerAddr, amount] = parsed.args;
+        
+        console.log('💰 PrizeDistributed event data:', {
+          winner: winnerAddr,
+          amount: ethers.formatEther(amount)
+        });
+        
+        setPrizeDistributed(true);
+        setPrizeDistributedAmount(ethers.formatEther(amount));
+        setPrizeDistributionTxHash(receipt.hash);
+        
+        setTxStatus(`✅ Success! Winner received ${ethers.formatEther(amount)} MON tokens!`);
+      }
+      
+      // Event listeners will also update UI in real-time
     } catch (error) {
-      console.error('End voting error:', error);
-      setTxStatus(`❌ Failed: ${error.reason || error.message}`);
+      console.error('❌ End voting error:', error);
+      setTxState('failed');
+      setTxStatus(`❌ Transaction failed: ${error.reason || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -356,25 +487,151 @@ export default function MVPTrackVoting() {
         </div>
       </div>
 
-      {/* Winner Banner */}
-      {!votingActive && winner && winner !== ethers.ZeroAddress && (
-        <div className="bg-gradient-to-r from-yellow-600 to-orange-600 border-4 border-yellow-400 rounded-lg p-6 mb-6 shadow-2xl animate-pulse">
-          <div className="flex items-center gap-4">
-            <span className="text-6xl">🏆</span>
-            <div>
-              <h2 className="text-3xl font-bold mb-2">WINNER!</h2>
-              <p className="text-xl mb-1">
-                Remix #{winningRemixId} by{' '}
-                <span className="font-mono font-bold bg-black/30 px-2 py-1 rounded">
-                  {winner.slice(0, 10)}...{winner.slice(-8)}
-                </span>
+      {/* ENHANCED: Victory Panel with Complete Winner Data */}
+      {showVictoryPanel && !votingActive && winner && winner !== ethers.ZeroAddress && (
+        <div className="bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500 border-4 border-yellow-300 rounded-xl p-8 mb-6 shadow-2xl">
+          {/* Trophy Header */}
+          <div className="flex items-center justify-center mb-6">
+            <span className="text-8xl animate-bounce">🏆</span>
+          </div>
+          
+          {/* Winner Title */}
+          <h2 className="text-5xl font-black text-center mb-6 text-white drop-shadow-lg">
+            VOTING COMPLETE!
+          </h2>
+          
+          {/* Winner Details Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-black/30 rounded-lg p-6 backdrop-blur-sm">
+            {/* Winner Remix ID */}
+            <div className="bg-white/10 rounded-lg p-4 border-2 border-yellow-300">
+              <label className="text-sm font-bold text-yellow-200 uppercase tracking-wide block mb-2">
+                🥇 Winning Remix
+              </label>
+              <p className="text-4xl font-black text-white">
+                #{winningRemixId}
+              </p>
+            </div>
+            
+            {/* Winner Address */}
+            <div className="bg-white/10 rounded-lg p-4 border-2 border-yellow-300">
+              <label className="text-sm font-bold text-yellow-200 uppercase tracking-wide block mb-2">
+                👤 Winner Address
+              </label>
+              <p className="text-lg font-mono font-bold text-white break-all">
+                {winner}
+              </p>
+              <p className="text-sm text-yellow-200 mt-1">
+                {winner.slice(0, 6)}...{winner.slice(-4)}
+              </p>
+            </div>
+            
+            {/* Vote Count */}
+            <div className="bg-white/10 rounded-lg p-4 border-2 border-yellow-300">
+              <label className="text-sm font-bold text-yellow-200 uppercase tracking-wide block mb-2">
+                🗳️ Votes Received
+              </label>
+              <p className="text-4xl font-black text-white">
+                {winnerVoteCount}
+              </p>
+            </div>
+            
+            {/* Prize Amount */}
+            <div className="bg-white/10 rounded-lg p-4 border-2 border-yellow-300">
+              <label className="text-sm font-bold text-yellow-200 uppercase tracking-wide block mb-2">
+                💰 Prize Distributed
+              </label>
+              <p className="text-4xl font-black text-green-300">
+                {prizeDistributedAmount || prizeAmount} MON
               </p>
               {prizeDistributed && (
-                <p className="text-lg text-green-300 font-bold">
-                  ✅ {prizeAmount} MON tokens sent!
+                <p className="text-sm text-green-300 mt-1 font-bold">
+                  ✅ Sent Successfully!
                 </p>
               )}
             </div>
+          </div>
+          
+          {/* Transaction Details */}
+          {endVotingTxHash && (
+            <div className="mt-6 bg-black/40 rounded-lg p-4 border border-yellow-300/50">
+              <h3 className="text-xl font-bold text-yellow-200 mb-3">📋 Transaction Details</h3>
+              
+              {/* End Voting TX */}
+              <div className="mb-3">
+                <label className="text-sm text-yellow-200 font-bold block mb-1">
+                  🏁 End Voting Transaction:
+                </label>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-mono bg-black/50 px-3 py-2 rounded flex-1 text-white break-all">
+                    {endVotingTxHash}
+                  </p>
+                  <a
+                    href={`https://testnet.monadexplorer.com/tx/${endVotingTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded font-bold text-sm whitespace-nowrap transition"
+                  >
+                    View on Explorer 🔗
+                  </a>
+                </div>
+              </div>
+              
+              {/* Prize Distribution TX (if different) */}
+              {prizeDistributionTxHash && prizeDistributionTxHash !== endVotingTxHash && (
+                <div>
+                  <label className="text-sm text-yellow-200 font-bold block mb-1">
+                    💰 Prize Distribution Transaction:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-mono bg-black/50 px-3 py-2 rounded flex-1 text-white break-all">
+                      {prizeDistributionTxHash}
+                    </p>
+                    <a
+                      href={`https://testnet.monadexplorer.com/tx/${prizeDistributionTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded font-bold text-sm whitespace-nowrap transition"
+                    >
+                      View on Explorer 🔗
+                    </a>
+                  </div>
+                </div>
+              )}
+              
+              {/* Transaction State Indicator */}
+              {txState && (
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-sm font-bold text-yellow-200">Status:</span>
+                  {txState === 'pending' && (
+                    <span className="px-3 py-1 bg-blue-600 rounded-full text-sm font-bold animate-pulse">
+                      ⏳ Pending...
+                    </span>
+                  )}
+                  {txState === 'confirming' && (
+                    <span className="px-3 py-1 bg-yellow-600 rounded-full text-sm font-bold animate-pulse">
+                      ⏳ Confirming...
+                    </span>
+                  )}
+                  {txState === 'confirmed' && (
+                    <span className="px-3 py-1 bg-green-600 rounded-full text-sm font-bold">
+                      ✅ Confirmed
+                    </span>
+                  )}
+                  {txState === 'failed' && (
+                    <span className="px-3 py-1 bg-red-600 rounded-full text-sm font-bold">
+                      ❌ Failed
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Celebration Message */}
+          <div className="mt-6 text-center">
+            <p className="text-2xl font-bold text-white drop-shadow-lg">
+              🎉 Congratulations to the winner! 🎉
+            </p>
           </div>
         </div>
       )}
