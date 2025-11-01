@@ -24,23 +24,32 @@ export default function TrackCard({ track, remixes = [], onOpenRemix, onVote }) 
     <div className="bg-gray-800 rounded-lg p-4">
       <div className="flex justify-between items-start gap-4">
         <div className="flex-1">
-          <h3 className="text-lg font-bold">{track.title}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold">{track.title}</h3>
+            {remixes.length > 0 && (
+              <span className="px-2 py-1 bg-purple-600 rounded-full text-xs">
+                {remixes.length} remix{remixes.length !== 1 ? 'es' : ''}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-400">{track.description}</p>
           <p className="text-xs text-gray-500 mt-2">Uploaded by: {track.artist}</p>
           <p className="text-xs text-gray-500">Created: {new Date(track.createdAt).toLocaleString()}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <button
-            onClick={() => setExpanded((s) => !s)}
-            className="px-3 py-1 bg-primary rounded text-sm"
-          >
-            {expanded ? 'Hide' : 'Details'}
-          </button>
+          {remixes.length > 0 && (
+            <button
+              onClick={() => setExpanded((s) => !s)}
+              className="px-3 py-1 bg-primary rounded text-sm"
+            >
+              {expanded ? 'Hide Remixes' : 'Show Remixes'}
+            </button>
+          )}
           <button
             onClick={onOpenRemix}
             className="px-3 py-1 bg-secondary rounded text-sm"
           >
-            Remix
+            Upload Remix
           </button>
         </div>
       </div>
