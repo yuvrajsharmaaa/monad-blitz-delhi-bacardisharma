@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import TrackList from '../components/TrackList';
 import TracksPage from '../components/TracksPage';
 import UploadTrack from '../components/UploadTrack';
+import RemixBattlePage from '../components/RemixBattlePage';
 
 export default function Home() {
   const [tracks, setTracks] = useState([]);
@@ -80,6 +81,16 @@ export default function Home() {
             >
               Upload Track
             </button>
+            <button
+              onClick={() => setActiveTab('battles')}
+              className={`px-4 py-2 ${
+                activeTab === 'battles'
+                  ? 'border-b-2 border-primary text-primary'
+                  : 'text-gray-400'
+              }`}
+            >
+              🏆 Remix Battles
+            </button>
           </div>
         </div>
 
@@ -87,6 +98,7 @@ export default function Home() {
           backendOnly ? <TracksPage /> : <TrackList tracks={tracks} loading={loading} />
         )}
         {activeTab === 'upload' && <UploadTrack onUpload={loadTracks} />}
+        {activeTab === 'battles' && <RemixBattlePage />}
       </main>
     </div>
   );
