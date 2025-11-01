@@ -17,8 +17,10 @@ module.exports = {
       url: process.env.MONAD_RPC_URL || "https://testnet-rpc.monad.xyz",
       chainId: parseInt(process.env.MONAD_CHAIN_ID || "10143"),
       accounts: (process.env.PRIVATE_KEY && process.env.PRIVATE_KEY !== 'your_private_key_here_without_0x_prefix') 
-        ? [process.env.PRIVATE_KEY] 
+        ? [`0x${process.env.PRIVATE_KEY.replace(/^0x/, '')}`] 
         : [],
+      gasPrice: "auto",
+      gas: "auto",
     },
     localhost: {
       url: "http://127.0.0.1:8545",
