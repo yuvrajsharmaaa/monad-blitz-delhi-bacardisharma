@@ -6,7 +6,7 @@ import Header from '../components/Header';
 import TrackList from '../components/TrackList';
 import TracksPage from '../components/TracksPage';
 import UploadTrack from '../components/UploadTrack';
-import RemixBattlePage from '../components/RemixBattlePage';
+import MultiRemixBattle from '../components/MultiRemixBattle';
 import SingleTrackVoting from '../components/SingleTrackVoting';
 
 export default function Home() {
@@ -109,7 +109,7 @@ export default function Home() {
           backendOnly ? <TracksPage /> : <TrackList tracks={tracks} loading={loading} />
         )}
         {activeTab === 'upload' && <UploadTrack onUpload={loadTracks} />}
-        {activeTab === 'battles' && <RemixBattlePage />}
+        {activeTab === 'battles' && <MultiRemixBattle />}
         {activeTab === 'voting' && <SingleTrackVoting />}
       </main>
     </div>
