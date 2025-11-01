@@ -1,5 +1,5 @@
-import RemixBattlePage from '@/components/RemixBattlePage';
+import SimplifiedRemixBattle from '@/components/SimplifiedRemixBattle';
 
 export default function BattlesPage() {
-  return <RemixBattlePage />;
+  return <SimplifiedRemixBattle />;
 }
