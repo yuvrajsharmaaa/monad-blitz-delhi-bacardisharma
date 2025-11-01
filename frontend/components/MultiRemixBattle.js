@@ -72,6 +72,23 @@ export default function MultiRemixBattle() {
       setStatus('✅ Wallet connected!');
       
       loadContests(web3Provider);
+
+      // Listen for account changes
+      window.ethereum.on('accountsChanged', (accounts) => {
+        if (accounts.length === 0) {
+          setUserAddress('');
+          setSigner(null);
+          setStatus('❌ Wallet disconnected');
+        } else {
+          setUserAddress(accounts[0]);
+          connectWallet();
+        }
+      });
+
+      // Listen for chain changes
+      window.ethereum.on('chainChanged', () => {
+        window.location.reload();
+      });
     } catch (error) {
       console.error('Connection error:', error);
       setStatus('❌ Connection failed: ' + error.message);
@@ -214,10 +231,17 @@ export default function MultiRemixBattle() {
 
     try {
       setLoading(true);
-      setStatus('⏳ Voting...');
+      setStatus('⏳ Preparing vote transaction...');
 
-      const contract = new ethers.Contract(MULTI_REMIX_ADDRESS, MULTI_REMIX_ABI, signer);
+      // Reconnect if needed
+      const web3Signer = await new ethers.BrowserProvider(window.ethereum).getSigner();
+      
+      const contract = new ethers.Contract(MULTI_REMIX_ADDRESS, MULTI_REMIX_ABI, web3Signer);
+      
+      setStatus('⏳ Sending vote transaction...');
       const tx = await contract.vote(contestId, submissionId);
+      
+      setStatus('⏳ Waiting for confirmation...');
       const receipt = await tx.wait();
       
       setTxHash(receipt.hash);
@@ -226,7 +250,16 @@ export default function MultiRemixBattle() {
       setTimeout(() => loadContests(), 2000);
     } catch (error) {
       console.error('Vote error:', error);
-      setStatus('❌ Error: ' + (error.reason || error.message));
+      
+      if (error.code === 'ACTION_REJECTED') {
+        setStatus('❌ Transaction rejected by user');
+      } else if (error.message.includes('Already voted')) {
+        setStatus('❌ You have already voted in this contest');
+      } else if (error.message.includes('Block tracker destroyed')) {
+        setStatus('❌ Connection lost. Please refresh and try again.');
+      } else {
+        setStatus('❌ Error: ' + (error.reason || error.message));
+      }
     } finally {
       setLoading(false);
     }
@@ -242,10 +275,17 @@ export default function MultiRemixBattle() {
 
     try {
       setLoading(true);
-      setStatus('⏳ Ending contest...');
+      setStatus('⏳ Preparing to end contest...');
 
-      const contract = new ethers.Contract(MULTI_REMIX_ADDRESS, MULTI_REMIX_ABI, signer);
+      // Reconnect if needed
+      const web3Signer = await new ethers.BrowserProvider(window.ethereum).getSigner();
+      
+      const contract = new ethers.Contract(MULTI_REMIX_ADDRESS, MULTI_REMIX_ABI, web3Signer);
+      
+      setStatus('⏳ Sending transaction to end contest...');
       const tx = await contract.endContestAndPay(contestId);
+      
+      setStatus('⏳ Waiting for confirmation and prize payout...');
       const receipt = await tx.wait();
       
       setTxHash(receipt.hash);
@@ -254,7 +294,18 @@ export default function MultiRemixBattle() {
       setTimeout(() => loadContests(), 2000);
     } catch (error) {
       console.error('End contest error:', error);
-      setStatus('❌ Error: ' + error.message);
+      
+      if (error.code === 'ACTION_REJECTED') {
+        setStatus('❌ Transaction rejected by user');
+      } else if (error.message.includes('Block tracker destroyed')) {
+        setStatus('❌ Connection lost. Please refresh and try again.');
+      } else if (error.message.includes('Not active')) {
+        setStatus('❌ Contest is not active');
+      } else if (error.message.includes('Only host')) {
+        setStatus('❌ Only the contest host can end the contest');
+      } else {
+        setStatus('❌ Error: ' + (error.reason || error.message));
+      }
     } finally {
       setLoading(false);
     }
@@ -308,8 +359,16 @@ export default function MultiRemixBattle() {
             </button>
           </div>
         ) : (
-          <div className="mb-8 p-4 bg-gray-800/50 rounded-lg text-center">
-            <p className="text-sm text-gray-400">Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}</p>
+          <div className="mb-8 p-4 bg-gray-800/50 rounded-lg">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-400">Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}</p>
+              <button
+                onClick={() => loadContests()}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm font-bold"
+              >
+                🔄 Refresh
+              </button>
+            </div>
           </div>
         )}
 
