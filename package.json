@@ -1,0 +1,15 @@
+{
+  "name": "monad-remix-competition",
+  "version": "1.0.0",
+  "description": "Music remix competition platform on Monad blockchain",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.js",
+    "frontend": "cd frontend && npm run dev"
+  },
+  "keywords": ["monad", "blockchain", "nft", "ipfs", "music"],
+  "author": "",
+  "license": "MIT"
+}
+
