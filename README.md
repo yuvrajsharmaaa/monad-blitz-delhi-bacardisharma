@@ -38,11 +38,18 @@ A full-stack decentralized platform for music remix competitions built on the Mo
 
 ## 🚀 Deployed Contracts (Monad Testnet)
 
+### Remix Battle System (Multi-Battle Platform)
 ```
 PRIZE Token:     0x3d6aC5D3FFae950a03Ea6B14387895Ddc9E631A5
 RemixBattle:     0xDC642fC6f697E524Ac4d8EFADD80C459297aa4B2
 MusicNFT:        0x21D652731fd29111714D60d99b641d52aF8D1251
 VotingContract:  0x1dE4545be0a494716153F1Adb505F629905159C3
+```
+
+### Track Voting System (Single-Track Focus)
+```
+TrackVoting:     0x7637801a09823b8AF38c0029DAe381EA4c31668b
+Prize Token:     0x3d6aC5D3FFae950a03Ea6B14387895Ddc9E631A5 (same)
 ```
 
 **Network Details:**
