@@ -82,9 +82,10 @@ describe("VotingContract", function () {
   });
 
   describe("Winner declaration", function () {
-    beforeEach(async function () {
+    it("Should declare winner after competition ends", async function () {
+      // Setup: mint track, create competition, mint remixes
       await musicNFT.connect(addr1).mintOriginal("QmOriginal");
-      await votingContract.connect(addr1).createCompetition(1, 1, ethers.parseEther("1.0")); // 1 second duration
+      await votingContract.connect(addr1).createCompetition(1, 2, ethers.parseEther("1.0")); // 2 second duration
       await musicNFT.connect(addr2).mintRemix(1, "QmRemix1");
       await musicNFT.connect(addr3).mintRemix(1, "QmRemix2");
       await votingContract.connect(addr2).registerRemix(1, 2);
@@ -95,16 +96,14 @@ describe("VotingContract", function () {
         to: await votingContract.getAddress(),
         value: ethers.parseEther("1.0")
       });
-    });
-
-    it("Should declare winner after competition ends", async function () {
-      // Wait for competition to end
-      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Cast votes
+      // Cast votes BEFORE competition ends (immediately after setup)
       await votingContract.connect(owner).vote(1, 2);
       await votingContract.connect(addr1).vote(1, 2);
       await votingContract.connect(addr2).vote(1, 3);
+      
+      // Wait for competition to end
+      await new Promise(resolve => setTimeout(resolve, 2100));
       
       // Declare winner
       await votingContract.declareWinner(1);
@@ -115,8 +114,18 @@ describe("VotingContract", function () {
     });
 
     it("Should fail to declare winner before competition ends", async function () {
+      // Create a new competition with longer duration for this test
+      await musicNFT.connect(addr1).mintOriginal("QmOriginal2");
+      await votingContract.connect(addr1).createCompetition(4, 3600, ethers.parseEther("1.0")); // 1 hour duration
+      await musicNFT.connect(addr2).mintRemix(4, "QmRemix3");
+      await votingContract.connect(addr2).registerRemix(4, 5);
+      
+      // Cast some votes first
+      await votingContract.connect(owner).vote(4, 5);
+      
+      // Try to declare winner immediately (should fail)
       await expect(
-        votingContract.declareWinner(1)
+        votingContract.declareWinner(4)
       ).to.be.revertedWith("Competition not ended");
     });
   });

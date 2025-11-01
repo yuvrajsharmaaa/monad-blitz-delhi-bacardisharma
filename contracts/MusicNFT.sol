@@ -67,7 +67,8 @@ contract MusicNFT is ERC721URIStorage, Ownable {
      * @param ipfsHash IPFS hash of remix metadata
      */
     function mintRemix(uint256 remixOf, string calldata ipfsHash) external returns (uint256) {
-        require(ownerOf(remixOf) != address(0), "Parent track does not exist");
+        // Check if parent track exists by verifying tracks mapping has data
+        require(tracks[remixOf].creator != address(0), "Parent track does not exist");
         
         _tokenIdCounter++;
         uint256 tokenId = _tokenIdCounter;
