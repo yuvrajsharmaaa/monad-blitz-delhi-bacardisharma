@@ -18,25 +18,18 @@ export default function TracksPage() {
     setLoading(true);
     setError(null);
     try {
-      console.log('Fetching tracks from backend...');
-      const res = await fetch('http://localhost:3002/api/tracks');
-      console.log('Response status:', res.status);
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3002';
+      const res = await fetch(`${backendUrl}/api/tracks`);
       
-      if (!res.ok) throw new Error(`Failed to load tracks: ${res.status}`);
+      if (!res.ok) throw new Error('Failed to load tracks');
       const data = await res.json();
-      console.log('Received tracks:', data);
       
-      // group parents and remixes
       const all = data.tracks || [];
-      console.log('Total tracks:', all.length);
-      
-      // sort by createdAt desc
       all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setTracks(all);
-      console.log('Tracks loaded successfully');
     } catch (err) {
       console.error('Error fetching tracks:', err);
-      setError(err.message || 'Unknown error');
+      setError('Unable to load tracks');
     } finally {
       setLoading(false);
     }

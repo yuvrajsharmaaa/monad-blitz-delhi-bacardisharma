@@ -97,16 +97,11 @@ export default function MultiRemixBattle() {
 
   // Load Contests
   const loadContests = async (web3Provider = provider) => {
-    if (!web3Provider || !MULTI_REMIX_ADDRESS) {
-      console.log('Cannot load contests:', { provider: !!web3Provider, address: MULTI_REMIX_ADDRESS });
-      return;
-    }
+    if (!web3Provider || !MULTI_REMIX_ADDRESS) return;
 
     try {
-      console.log('Loading contests from:', MULTI_REMIX_ADDRESS);
       const contract = new ethers.Contract(MULTI_REMIX_ADDRESS, MULTI_REMIX_ABI, web3Provider);
       const totalContests = await contract.contestCount();
-      console.log('Total contests:', Number(totalContests));
       
       const loadedContests = [];
       for (let i = 1; i <= Number(totalContests); i++) {
@@ -114,10 +109,8 @@ export default function MultiRemixBattle() {
         const submissionIds = await contract.getContestSubmissions(i);
         
         const submissions = [];
-        console.log(`Contest ${i} has ${submissionIds.length} submissions`);
         for (let subId of submissionIds) {
           const sub = await contract.getSubmission(Number(subId));
-          console.log(`Loaded submission #${subId}:`, sub.remixURI);
           submissions.push({
             id: Number(sub.id),
             contestId: Number(sub.contestId),
@@ -142,11 +135,10 @@ export default function MultiRemixBattle() {
         });
       }
       
-      console.log('Loaded contests:', loadedContests);
       setContests(loadedContests);
     } catch (error) {
       console.error('Load error:', error);
-      setStatus('❌ Error loading contests: ' + error.message);
+      setStatus('❌ Error loading contests');
     }
   };
 
