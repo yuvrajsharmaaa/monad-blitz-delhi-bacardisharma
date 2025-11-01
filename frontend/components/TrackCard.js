@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import VoteButton from './VoteButton';
 
 export default function TrackCard({ track, remixes = [], onOpenRemix, onVote }) {
   const [expanded, setExpanded] = useState(false);

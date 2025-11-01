@@ -1,0 +1,28 @@
+{
+  "app/page.js -> ../components/MultiRemixBattle": {
+    "id": "app/page.js -> ../components/MultiRemixBattle",
+    "files": [
+      "static/chunks/ethers.js",
+      "static/chunks/_app-pages-browser_components_MultiRemixBattle_js.js"
+    ]
+  },
+  "app/page.js -> ../components/SingleTrackVoting": {
+    "id": "app/page.js -> ../components/SingleTrackVoting",
+    "files": [
+      "static/chunks/ethers.js",
+      "static/chunks/_app-pages-browser_components_SingleTrackVoting_js.js"
+    ]
+  },
+  "app/page.js -> ../components/TracksPage": {
+    "id": "app/page.js -> ../components/TracksPage",
+    "files": [
+      "static/chunks/_app-pages-browser_components_TracksPage_js.js"
+    ]
+  },
+  "app/page.js -> ../components/UploadTrack": {
+    "id": "app/page.js -> ../components/UploadTrack",
+    "files": [
+      "static/chunks/_app-pages-browser_components_UploadTrack_js.js"
+    ]
+  }
+}
