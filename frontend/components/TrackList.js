@@ -17,6 +17,14 @@ export default function TrackList({ tracks, loading }) {
     
     // Set up event listeners for real-time updates
     setupEventListeners();
+
+    // Cleanup event listeners on unmount
+    return () => {
+      if (window.__tracklist_cleanup) {
+        window.__tracklist_cleanup();
+        delete window.__tracklist_cleanup;
+      }
+    };
   }, []);
 
   async function loadTracksAndCompetitions() {

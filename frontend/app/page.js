@@ -10,8 +10,14 @@ export default function Home() {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tracks');
+  const [contractsConfigured, setContractsConfigured] = useState(false);
 
   useEffect(() => {
+    // Check if contracts are configured
+    const musicNFT = process.env.NEXT_PUBLIC_MUSIC_NFT_ADDRESS;
+    const voting = process.env.NEXT_PUBLIC_VOTING_CONTRACT_ADDRESS;
+    setContractsConfigured(!!(musicNFT && voting && musicNFT.trim() && voting.trim()));
+    
     loadTracks();
   }, []);
 
@@ -29,6 +35,17 @@ export default function Home() {
     <div className="min-h-screen">
       <Header />
       <main className="container mx-auto px-6 py-8">
+        {!contractsConfigured && (
+          <div className="mb-6 bg-yellow-900/50 border border-yellow-600 rounded-lg p-4">
+            <p className="text-yellow-200">
+              ⚠️ <strong>Contracts not configured:</strong> Please deploy contracts and add addresses to <code className="bg-black/30 px-2 py-1 rounded">frontend/.env.local</code>
+            </p>
+            <p className="text-sm text-yellow-300 mt-2">
+              Run: <code className="bg-black/30 px-2 py-1 rounded">npx hardhat run scripts/deploy.js --network monad</code>
+            </p>
+          </div>
+        )}
+        
         <div className="mb-6">
           <div className="flex gap-4 border-b border-gray-700">
             <button

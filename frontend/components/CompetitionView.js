@@ -17,7 +17,12 @@ export default function CompetitionView({ trackId, voteCache, onBack }) {
 
   useEffect(() => {
     loadCompetitionData();
-    setupEventListeners();
+    const cleanup = setupEventListeners();
+
+    // Cleanup event listeners on unmount
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [trackId]);
 
   async function loadCompetitionData() {
@@ -90,16 +95,31 @@ export default function CompetitionView({ trackId, voteCache, onBack }) {
       process.env.NEXT_PUBLIC_MONAD_RPC_URL || 'https://testnet-rpc.monad.xyz'
     );
     const votingContract = getVotingContractReadOnly(provider);
+    
+    if (!votingContract) {
+      return null; // No contract, no cleanup needed
+    }
 
     // Listen for votes and update cache
-    votingContract.on('VoteCast', (originalTrackId, remixId, voter, newVoteCount) => {
+    const voteListener = (originalTrackId, remixId, voter, newVoteCount) => {
       if (originalTrackId.toString() === trackId) {
         setVotes((prev) => ({
           ...prev,
           [remixId.toString()]: newVoteCount.toString(),
         }));
       }
-    });
+    };
+    
+    votingContract.on('VoteCast', voteListener);
+
+    // Return cleanup function
+    return () => {
+      try {
+        votingContract.off('VoteCast', voteListener);
+      } catch (err) {
+        // ignore cleanup errors
+      }
+    };
   }
 
   // Memoized sorted remixes by votes (dynamic programming: avoid re-sorting)
