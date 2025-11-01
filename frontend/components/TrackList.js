@@ -38,20 +38,39 @@ export default function TrackList({ tracks, loading }) {
       process.env.NEXT_PUBLIC_MONAD_RPC_URL || 'https://testnet-rpc.monad.xyz'
     );
     const votingContract = getVotingContractReadOnly(provider);
+    if (!votingContract) {
+      // No voting contract configured — skip event wiring
+      return;
+    }
 
     // Listen for vote events (memoized updates)
-    votingContract.on('VoteCast', (originalTrackId, remixId, voter, newVoteCount) => {
+    const voteListener = (originalTrackId, remixId, voter, newVoteCount) => {
       updateVoteCache(originalTrackId.toString(), remixId.toString(), newVoteCount.toString());
-    });
+    };
+    votingContract.on('VoteCast', voteListener);
 
     // Listen for winner declarations
-    votingContract.on('WinnerDeclared', (originalTrackId, winnerRemixId, winnerCreator, totalVotes) => {
+    const winnerListener = (originalTrackId, winnerRemixId, winnerCreator, totalVotes) => {
       updateCompetition(originalTrackId.toString(), {
         winnerDeclared: true,
         winnerRemixId: winnerRemixId.toString(),
         totalVotes: totalVotes.toString(),
       });
-    });
+    };
+    votingContract.on('WinnerDeclared', winnerListener);
+
+    // Cleanup function: remove listeners when component unmounts
+    // Note: add cleanup by returning from setupEventListeners if needed —
+    // we attach the cleanup to window so the effect can remove it on unmount.
+    // (A small but pragmatic approach for this repo structure.)
+    window.__tracklist_cleanup = () => {
+      try {
+        votingContract.off('VoteCast', voteListener);
+        votingContract.off('WinnerDeclared', winnerListener);
+      } catch (err) {
+        // ignore
+      }
+    };
   }
 
   function updateVoteCache(originalTrackId, remixId, voteCount) {
