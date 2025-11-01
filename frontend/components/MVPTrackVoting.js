@@ -202,9 +202,9 @@ export default function MVPTrackVoting() {
         // Skip if no new blocks
         if (currentBlock <= lastBlockChecked) return;
         
-        // Query events from last checked block to current
+        // Limit block range to 100 (Monad RPC limitation)
         const fromBlock = lastBlockChecked + 1;
-        const toBlock = currentBlock;
+        const toBlock = Math.min(currentBlock, fromBlock + 99);
         
         // Query RemixSubmitted events
         try {
@@ -310,8 +310,8 @@ export default function MVPTrackVoting() {
           console.error('PrizeDistributed query error:', err);
         }
         
-        // Update last checked block
-        lastBlockChecked = currentBlock;
+        // Update last checked block (use toBlock to handle chunking)
+        lastBlockChecked = toBlock;
         
       } catch (error) {
         console.error('Polling error:', error);

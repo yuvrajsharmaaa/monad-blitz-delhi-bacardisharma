@@ -122,8 +122,9 @@ export default function CompetitionView({ trackId, voteCache, onBack }) {
         
         if (currentBlock <= lastBlockChecked) return;
         
+        // Limit block range to 100 (Monad RPC limitation)
         const fromBlock = lastBlockChecked + 1;
-        const toBlock = currentBlock;
+        const toBlock = Math.min(currentBlock, fromBlock + 99);
         
         try {
           const voteFilter = votingContract.filters.VoteCast();
@@ -141,7 +142,8 @@ export default function CompetitionView({ trackId, voteCache, onBack }) {
           console.error('VoteCast query error:', err);
         }
         
-        lastBlockChecked = currentBlock;
+        // Update last checked block (use toBlock to handle chunking)
+        lastBlockChecked = toBlock;
       } catch (error) {
         console.error('Polling error:', error);
       }
