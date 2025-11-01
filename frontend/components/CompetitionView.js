@@ -104,24 +104,56 @@ export default function CompetitionView({ trackId, voteCache, onBack }) {
       return null; // No contract, no cleanup needed
     }
 
-    // Listen for votes and update cache
-    const voteListener = (originalTrackId, remixId, voter, newVoteCount) => {
-      if (originalTrackId.toString() === trackId) {
-        setVotes((prev) => ({
-          ...prev,
-          [remixId.toString()]: newVoteCount.toString(),
-        }));
+    // Polling for events (Monad RPC doesn't support eth_newFilter)
+    let lastBlockChecked = null;
+    let pollingInterval = null;
+
+    const pollForEvents = async () => {
+      try {
+        if (!votingContract || !votingContract.runner) return;
+        
+        const provider = votingContract.runner.provider;
+        const currentBlock = await provider.getBlockNumber();
+        
+        if (lastBlockChecked === null) {
+          lastBlockChecked = currentBlock;
+          return;
+        }
+        
+        if (currentBlock <= lastBlockChecked) return;
+        
+        const fromBlock = lastBlockChecked + 1;
+        const toBlock = currentBlock;
+        
+        try {
+          const voteFilter = votingContract.filters.VoteCast();
+          const voteEvents = await votingContract.queryFilter(voteFilter, fromBlock, toBlock);
+          for (const event of voteEvents) {
+            const [originalTrackId, remixId, voter, newVoteCount] = event.args;
+            if (originalTrackId.toString() === trackId) {
+              setVotes((prev) => ({
+                ...prev,
+                [remixId.toString()]: newVoteCount.toString(),
+              }));
+            }
+          }
+        } catch (err) {
+          console.error('VoteCast query error:', err);
+        }
+        
+        lastBlockChecked = currentBlock;
+      } catch (error) {
+        console.error('Polling error:', error);
       }
     };
-    
-    votingContract.on('VoteCast', voteListener);
+
+    pollingInterval = setInterval(pollForEvents, 3000);
+    pollForEvents();
 
     // Return cleanup function
     return () => {
-      try {
-        votingContract.off('VoteCast', voteListener);
-      } catch (err) {
-        // ignore cleanup errors
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
       }
     };
   }

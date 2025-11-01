@@ -145,43 +145,101 @@ export default function SingleTrackVoting() {
     }
   }
 
-  // Setup event listeners for real-time updates
+  // Setup event listeners with polling (Monad RPC doesn't support eth_newFilter)
   function setupEventListeners(contractInstance) {
-    // Listen for new remixes
-    contractInstance.on('RemixSubmitted', (remixId, remixer, uri) => {
-      console.log('Remix submitted:', remixId, remixer);
-      loadRemixes(contractInstance);
-      setStatus('✅ New remix submitted!');
-    });
+    let lastBlockChecked = null;
+    let pollingInterval = null;
 
-    // Listen for votes
-    contractInstance.on('VoteCast', (voter, remixId, newVoteCount) => {
-      console.log('Vote cast:', voter, remixId, newVoteCount);
-      loadRemixes(contractInstance);
-      if (account && voter.toLowerCase() === account.toLowerCase()) {
-        setHasVoted(true);
-        setStatus('✅ Your vote has been recorded!');
+    const pollForEvents = async () => {
+      try {
+        if (!contractInstance || !contractInstance.runner) return;
+        
+        const provider = contractInstance.runner.provider;
+        const currentBlock = await provider.getBlockNumber();
+        
+        if (lastBlockChecked === null) {
+          lastBlockChecked = currentBlock;
+          return;
+        }
+        
+        if (currentBlock <= lastBlockChecked) return;
+        
+        const fromBlock = lastBlockChecked + 1;
+        const toBlock = currentBlock;
+        
+        // Query RemixSubmitted events
+        try {
+          const remixFilter = contractInstance.filters.RemixSubmitted();
+          const remixEvents = await contractInstance.queryFilter(remixFilter, fromBlock, toBlock);
+          for (const event of remixEvents) {
+            console.log('Remix submitted:', event.args);
+            loadRemixes(contractInstance);
+            setStatus('✅ New remix submitted!');
+          }
+        } catch (err) {
+          console.error('RemixSubmitted query error:', err);
+        }
+        
+        // Query VoteCast events
+        try {
+          const voteFilter = contractInstance.filters.VoteCast();
+          const voteEvents = await contractInstance.queryFilter(voteFilter, fromBlock, toBlock);
+          for (const event of voteEvents) {
+            const [voter, remixId, newVoteCount] = event.args;
+            console.log('Vote cast:', voter, remixId, newVoteCount);
+            loadRemixes(contractInstance);
+            if (account && voter.toLowerCase() === account.toLowerCase()) {
+              setHasVoted(true);
+              setStatus('✅ Your vote has been recorded!');
+            }
+          }
+        } catch (err) {
+          console.error('VoteCast query error:', err);
+        }
+        
+        // Query VotingEnded events
+        try {
+          const endFilter = contractInstance.filters.VotingEnded();
+          const endEvents = await contractInstance.queryFilter(endFilter, fromBlock, toBlock);
+          for (const event of endEvents) {
+            const [winningId, winnerAddr, voteCount] = event.args;
+            console.log('Voting ended:', winningId, winnerAddr, voteCount);
+            setVotingActive(false);
+            setWinner(winnerAddr);
+            setWinningRemixId(Number(winningId));
+            setStatus('🏆 Voting ended! Winner declared!');
+          }
+        } catch (err) {
+          console.error('VotingEnded query error:', err);
+        }
+        
+        // Query PrizeDistributed events
+        try {
+          const prizeFilter = contractInstance.filters.PrizeDistributed();
+          const prizeEvents = await contractInstance.queryFilter(prizeFilter, fromBlock, toBlock);
+          for (const event of prizeEvents) {
+            const [winnerAddr, amount] = event.args;
+            console.log('Prize distributed:', winnerAddr, amount);
+            setPrizeDistributed(true);
+            setStatus(`💰 Prize of ${ethers.formatEther(amount)} MON sent to winner!`);
+          }
+        } catch (err) {
+          console.error('PrizeDistributed query error:', err);
+        }
+        
+        lastBlockChecked = currentBlock;
+      } catch (error) {
+        console.error('Polling error:', error);
       }
-    });
+    };
 
-    // Listen for voting end
-    contractInstance.on('VotingEnded', (winningId, winnerAddr, voteCount) => {
-      console.log('Voting ended:', winningId, winnerAddr, voteCount);
-      setVotingActive(false);
-      setWinner(winnerAddr);
-      setWinningRemixId(Number(winningId));
-      setStatus('🏆 Voting ended! Winner declared!');
-    });
-
-    // Listen for prize distribution
-    contractInstance.on('PrizeDistributed', (winnerAddr, amount) => {
-      console.log('Prize distributed:', winnerAddr, amount);
-      setPrizeDistributed(true);
-      setStatus(`💰 Prize of ${ethers.formatEther(amount)} MON sent to winner!`);
-    });
+    pollingInterval = setInterval(pollForEvents, 3000);
+    pollForEvents();
 
     return () => {
-      contractInstance.removeAllListeners();
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
     };
   }
 

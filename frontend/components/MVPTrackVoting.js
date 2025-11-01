@@ -87,17 +87,24 @@ export default function MVPTrackVoting() {
   useEffect(() => {
     if (!VOTING_ADDRESS) return;
     
+    let cleanup;
+    
     if (provider) {
       const votingContract = new ethers.Contract(VOTING_ADDRESS, VOTING_ABI, provider);
       setContract(votingContract);
       loadData(votingContract);
-      setupEventListeners(votingContract);
+      cleanup = setupEventListeners(votingContract);
     }
     
     if (signer && PRIZE_TOKEN_ADDRESS) {
       const tokenContract = new ethers.Contract(PRIZE_TOKEN_ADDRESS, ERC20_ABI, signer);
       setPrizeTokenContract(tokenContract);
     }
+    
+    // Cleanup polling interval on unmount
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [provider, signer, account]);
 
   // Load all data
@@ -173,98 +180,156 @@ export default function MVPTrackVoting() {
     }
   };
 
-  // Setup event listeners with enhanced VotingEnded handling
+  // Setup event listeners with polling (Monad RPC doesn't support eth_newFilter)
   const setupEventListeners = (votingContract) => {
-    // RemixSubmitted event
-    votingContract.on('RemixSubmitted', (remixId, remixer, uri) => {
-      console.log('✅ Remix submitted:', remixId, remixer);
-      loadRemixes(votingContract);
-      setTxStatus(`✅ Remix #${remixId} submitted successfully!`);
-    });
-    
-    // VoteCast event
-    votingContract.on('VoteCast', (voter, remixId, voteCount) => {
-      console.log('✅ Vote cast:', voter, remixId, voteCount);
-      loadRemixes(votingContract);
-      if (account && voter.toLowerCase() === account.toLowerCase()) {
-        setHasVoted(true);
-        setUserVote(Number(remixId));
-        setTxStatus(`✅ Your vote for Remix #${remixId} recorded!`);
-      }
-    });
-    
-    // ENHANCED: VotingEnded event with complete winner data
-    votingContract.on('VotingEnded', async (winningId, winnerAddr, voteCount, event) => {
-      console.log('🏆 VotingEnded event received:', {
-        winningId: winningId.toString(),
-        winnerAddr,
-        voteCount: voteCount.toString()
-      });
-      
+    let lastBlockChecked = null;
+    let pollingInterval = null;
+
+    // Polling function to check for events
+    const pollForEvents = async () => {
       try {
-        // Update state with winner information
-        setVotingActive(false);
-        setWinner(winnerAddr);
-        setWinningRemixId(Number(winningId));
-        setWinnerVoteCount(Number(voteCount));
+        if (!votingContract || !votingContract.runner) return;
         
-        // Get transaction hash from event
-        const txHash = event.log.transactionHash;
-        setEndVotingTxHash(txHash);
+        const provider = votingContract.runner.provider;
+        const currentBlock = await provider.getBlockNumber();
         
-        // Show transaction state
-        setTxState('confirming');
-        setTxStatus(`🏆 Voting ended! Winner: Remix #${winningId} with ${voteCount} votes. Confirming transaction...`);
+        // On first run, start from current block
+        if (lastBlockChecked === null) {
+          lastBlockChecked = currentBlock;
+          return;
+        }
         
-        // Wait for transaction confirmation
-        const tx = await event.log.getTransaction();
-        const receipt = await tx.wait();
+        // Skip if no new blocks
+        if (currentBlock <= lastBlockChecked) return;
         
-        setTxState('confirmed');
-        console.log('✅ VotingEnded transaction confirmed:', receipt.hash);
+        // Query events from last checked block to current
+        const fromBlock = lastBlockChecked + 1;
+        const toBlock = currentBlock;
         
-        // Show victory panel
-        setShowVictoryPanel(true);
-        setTxStatus(`✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
+        // Query RemixSubmitted events
+        try {
+          const remixFilter = votingContract.filters.RemixSubmitted();
+          const remixEvents = await votingContract.queryFilter(remixFilter, fromBlock, toBlock);
+          for (const event of remixEvents) {
+            const [remixId, remixer, uri] = event.args;
+            console.log('✅ Remix submitted:', remixId, remixer);
+            loadRemixes(votingContract);
+            setTxStatus(`✅ Remix #${remixId} submitted successfully!`);
+          }
+        } catch (err) {
+          console.error('RemixSubmitted query error:', err);
+        }
+        
+        // Query VoteCast events
+        try {
+          const voteFilter = votingContract.filters.VoteCast();
+          const voteEvents = await votingContract.queryFilter(voteFilter, fromBlock, toBlock);
+          for (const event of voteEvents) {
+            const [voter, remixId, voteCount] = event.args;
+            console.log('✅ Vote cast:', voter, remixId, voteCount);
+            loadRemixes(votingContract);
+            if (account && voter.toLowerCase() === account.toLowerCase()) {
+              setHasVoted(true);
+              setUserVote(Number(remixId));
+              setTxStatus(`✅ Your vote for Remix #${remixId} recorded!`);
+            }
+          }
+        } catch (err) {
+          console.error('VoteCast query error:', err);
+        }
+        
+        // Query VotingEnded events (ENHANCED)
+        try {
+          const endFilter = votingContract.filters.VotingEnded();
+          const endEvents = await votingContract.queryFilter(endFilter, fromBlock, toBlock);
+          for (const event of endEvents) {
+            const [winningId, winnerAddr, voteCount] = event.args;
+            console.log('🏆 VotingEnded event received:', {
+              winningId: winningId.toString(),
+              winnerAddr,
+              voteCount: voteCount.toString()
+            });
+            
+            try {
+              // Update state with winner information
+              setVotingActive(false);
+              setWinner(winnerAddr);
+              setWinningRemixId(Number(winningId));
+              setWinnerVoteCount(Number(voteCount));
+              
+              // Get transaction hash from event
+              const txHash = event.transactionHash;
+              setEndVotingTxHash(txHash);
+              
+              // Show transaction state
+              setTxState('confirmed');
+              setTxStatus(`🏆 Voting ended! Winner: Remix #${winningId} with ${voteCount} votes`);
+              
+              // Show victory panel
+              setShowVictoryPanel(true);
+              console.log('✅ VotingEnded transaction confirmed:', txHash);
+              
+            } catch (error) {
+              console.error('Error processing VotingEnded event:', error);
+              setTxState('failed');
+              setTxStatus(`❌ Error processing voting end: ${error.message}`);
+            }
+          }
+        } catch (err) {
+          console.error('VotingEnded query error:', err);
+        }
+        
+        // Query PrizeDistributed events (ENHANCED)
+        try {
+          const prizeFilter = votingContract.filters.PrizeDistributed();
+          const prizeEvents = await votingContract.queryFilter(prizeFilter, fromBlock, toBlock);
+          for (const event of prizeEvents) {
+            const [winnerAddr, amount] = event.args;
+            console.log('💰 PrizeDistributed event received:', {
+              winner: winnerAddr,
+              amount: ethers.formatEther(amount)
+            });
+            
+            try {
+              setPrizeDistributed(true);
+              setPrizeDistributedAmount(ethers.formatEther(amount));
+              
+              // Get transaction hash
+              const txHash = event.transactionHash;
+              setPrizeDistributionTxHash(txHash);
+              
+              // Update status
+              setTxStatus(`💰 Prize distributed! ${ethers.formatEther(amount)} MON sent to winner!`);
+              console.log('✅ Prize distribution confirmed:', txHash);
+              
+            } catch (error) {
+              console.error('Error processing PrizeDistributed event:', error);
+            }
+          }
+        } catch (err) {
+          console.error('PrizeDistributed query error:', err);
+        }
+        
+        // Update last checked block
+        lastBlockChecked = currentBlock;
         
       } catch (error) {
-        console.error('Error processing VotingEnded event:', error);
-        setTxState('failed');
-        setTxStatus(`❌ Error processing voting end: ${error.message}`);
+        console.error('Polling error:', error);
       }
-    });
+    };
+
+    // Start polling every 3 seconds
+    pollingInterval = setInterval(pollForEvents, 3000);
     
-    // ENHANCED: PrizeDistributed event with transaction tracking
-    votingContract.on('PrizeDistributed', async (winnerAddr, amount, event) => {
-      console.log('💰 PrizeDistributed event received:', {
-        winner: winnerAddr,
-        amount: ethers.formatEther(amount)
-      });
-      
-      try {
-        setPrizeDistributed(true);
-        setPrizeDistributedAmount(ethers.formatEther(amount));
-        
-        // Get transaction hash
-        const txHash = event.log.transactionHash;
-        setPrizeDistributionTxHash(txHash);
-        
-        // Update status
-        setTxStatus(`💰 Prize distributed! ${ethers.formatEther(amount)} MON sent to winner!`);
-        
-        // Wait for confirmation
-        const tx = await event.log.getTransaction();
-        const receipt = await tx.wait();
-        
-        console.log('✅ Prize distribution confirmed:', receipt.hash);
-        setTxStatus(`✅ Prize sent successfully! TX: ${receipt.hash.slice(0, 10)}...${receipt.hash.slice(-8)}`);
-        
-      } catch (error) {
-        console.error('Error processing PrizeDistributed event:', error);
+    // Initial poll
+    pollForEvents();
+
+    // Cleanup function
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
       }
-    });
-    
-    return () => votingContract.removeAllListeners();
+    };
   };
 
   // Submit remix
