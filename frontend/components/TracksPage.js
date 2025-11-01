@@ -53,10 +53,28 @@ export default function TracksPage() {
 
   return (
     <div>
-      {loading && <div className="text-center py-8">Loading tracks...</div>}
+      <div className="mb-6 flex justify-between items-center">
+        <h2 className="text-2xl font-bold">
+          Tracks ({parents.length})
+        </h2>
+        <button
+          onClick={fetchTracks}
+          disabled={loading}
+          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 rounded font-bold"
+        >
+          {loading ? '⏳ Loading...' : '🔄 Refresh'}
+        </button>
+      </div>
+
       {error && (
         <div className="bg-red-800/40 text-red-200 p-4 rounded mb-4">
           Error loading tracks: {error}
+          <button
+            onClick={fetchTracks}
+            className="ml-4 px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -64,6 +82,7 @@ export default function TracksPage() {
         <div className="text-center py-12 text-gray-400">
           <p className="text-xl mb-2">No tracks yet</p>
           <p>Upload a track to get started!</p>
+          <p className="text-sm mt-4">Total tracks in backend: {tracks.length}</p>
         </div>
       )}
 
