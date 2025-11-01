@@ -1,33 +1,76 @@
-# Running the Project
+# 🎵 Running the Music NFT Platform
 
-## Status
+## ⚠️ CRITICAL: 3 Services Must Run Simultaneously
 
-✅ **Contracts**: Compiled successfully
-✅ **Tests**: 9 out of 11 passing (2 timing-sensitive tests need adjustment)
-✅ **Frontend**: Ready to run (dependencies need installation)
+This platform requires **3 services** running at the same time:
 
-## To Run the Frontend
+1. **Hardhat Node** (Blockchain) → Port 8545
+2. **Backend Server** (File Storage) → Port 3002
+3. **Frontend** (UI) → Port 3001
 
-1. **Install frontend dependencies**:
+**If ANY service stops, you'll get "Failed to fetch" errors!**
+
+---
+
+## 🚀 STEP-BY-STEP STARTUP
+
+### Terminal 1: Start Blockchain (Hardhat Node)
+
 ```bash
-cd frontend
-npm install
+cd /home/yuvrajs/Desktop/MonadFInal
+npx hardhat node
 ```
 
-2. **Create environment file** (`frontend/.env.local`):
+**✅ Wait for:** `Started HTTP and WebSocket JSON-RPC server at http://127.0.0.1:8545/`
+
+**⚠️ KEEP THIS RUNNING! Don't close this terminal.**
+
+---
+
+### Terminal 2: Deploy Contracts (One-time)
+
+**Wait for Terminal 1 to be ready**, then in a NEW terminal:
+
 ```bash
-NEXT_PUBLIC_MUSIC_NFT_ADDRESS=
-NEXT_PUBLIC_VOTING_CONTRACT_ADDRESS=
-NEXT_PUBLIC_MONAD_RPC_URL=https://testnet-rpc.monad.xyz
-NEXT_PUBLIC_MONAD_CHAIN_ID=10143
+cd /home/yuvrajs/Desktop/MonadFInal
+npx hardhat run scripts/deploy.js --network localhost
 ```
 
-3. **Start development server**:
+**✅ You'll see:**
+```
+MusicNFT deployed to: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+VotingContract deployed to: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+```
+
+These addresses are already configured. Close this terminal after success.
+
+---
+
+### Terminal 3: Start Backend Server
+
 ```bash
+cd /home/yuvrajs/Desktop/MonadFInal/backend
+node server.js
+```
+
+**✅ You'll see:** `Backend server running on http://localhost:3002`
+
+**⚠️ KEEP THIS RUNNING!**
+
+---
+
+### Terminal 4: Start Frontend
+
+```bash
+cd /home/yuvrajs/Desktop/MonadFInal/frontend
 npm run dev
 ```
 
-4. **Open browser**: `http://localhost:3000`
+**✅ You'll see:** `Local: http://localhost:3001`
+
+**⚠️ KEEP THIS RUNNING!**
+
+Open browser: **http://localhost:3001**
 
 ## To Deploy Contracts
 
