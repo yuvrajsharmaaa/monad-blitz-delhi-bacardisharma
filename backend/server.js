@@ -45,8 +45,37 @@ const upload = multer({
   }
 });
 
-// In-memory metadata storage (replace with MongoDB in production)
-const metadata = new Map();
+// Create data directory for tracks metadata
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+const tracksFile = path.join(dataDir, 'tracks.json');
+
+// Initialize tracks file if it doesn't exist
+if (!fs.existsSync(tracksFile)) {
+  fs.writeFileSync(tracksFile, JSON.stringify({ tracks: [] }, null, 2));
+}
+
+// Helper functions
+function loadTracks() {
+  try {
+    const data = fs.readFileSync(tracksFile, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Error loading tracks:', error);
+    return { tracks: [] };
+  }
+}
+
+function saveTracks(data) {
+  try {
+    fs.writeFileSync(tracksFile, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error('Error saving tracks:', error);
+  }
+}
 
 // Routes
 
@@ -55,25 +84,94 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Upload audio file
-app.post('/api/upload', upload.single('file'), (req, res) => {
+// Upload track with metadata
+app.post('/api/tracks', upload.single('file'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const fileId = req.file.filename;
-    const fileUrl = `/api/files/${fileId}`;
+    const { title, description, artist, parentId, onChainTrackId } = req.body;
+
+    const track = {
+      id: Date.now().toString(),
+      title: title || 'Untitled',
+      description: description || '',
+      artist: artist || 'Unknown',
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype,
+      fileUrl: `http://localhost:${PORT}/api/files/${req.file.filename}`,
+      parentId: parentId || null,
+      onChainTrackId: onChainTrackId || null,
+      voteCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    const data = loadTracks();
+    data.tracks.push(track);
+    saveTracks(data);
+
+    console.log(`✅ Track uploaded: ${track.title} by ${track.artist}`);
+    if (parentId) {
+      console.log(`   └─ Remix of track ${parentId}`);
+    }
 
     res.json({
       success: true,
-      fileId,
-      fileUrl,
-      filename: req.file.originalname,
-      size: req.file.size
+      track
     });
   } catch (error) {
     console.error('Upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all tracks
+app.get('/api/tracks', (req, res) => {
+  try {
+    const data = loadTracks();
+    res.json({ tracks: data.tracks });
+  } catch (error) {
+    console.error('Error fetching tracks:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single track
+app.get('/api/tracks/:id', (req, res) => {
+  try {
+    const data = loadTracks();
+    const track = data.tracks.find(t => t.id === req.params.id);
+    
+    if (!track) {
+      return res.status(404).json({ error: 'Track not found' });
+    }
+
+    res.json({ track });
+  } catch (error) {
+    console.error('Error fetching track:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update track vote count
+app.patch('/api/tracks/:id/vote', (req, res) => {
+  try {
+    const data = loadTracks();
+    const track = data.tracks.find(t => t.id === req.params.id);
+    
+    if (!track) {
+      return res.status(404).json({ error: 'Track not found' });
+    }
+
+    track.voteCount = (track.voteCount || 0) + 1;
+    saveTracks(data);
+
+    res.json({ success: true, voteCount: track.voteCount });
+  } catch (error) {
+    console.error('Error updating vote:', error);
     res.status(500).json({ error: error.message });
   }
 });
