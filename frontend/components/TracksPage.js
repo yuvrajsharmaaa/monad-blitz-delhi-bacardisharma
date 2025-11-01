@@ -44,16 +44,18 @@ export default function TracksPage() {
   const parents = tracks.filter((t) => !t.parentId);
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Tracks</h1>
-        <p className="text-sm text-gray-400">Upload, remix and vote on tracks</p>
-      </div>
-
+    <div>
       {loading && <div className="text-center py-8">Loading tracks...</div>}
       {error && (
         <div className="bg-red-800/40 text-red-200 p-4 rounded mb-4">
           Error loading tracks: {error}
+        </div>
+      )}
+
+      {!loading && !error && parents.length === 0 && (
+        <div className="text-center py-12 text-gray-400">
+          <p className="text-xl mb-2">No tracks yet</p>
+          <p>Upload a track to get started!</p>
         </div>
       )}
 

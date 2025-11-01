@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import Header from '../components/Header';
 import TrackList from '../components/TrackList';
+import TracksPage from '../components/TracksPage';
 import UploadTrack from '../components/UploadTrack';
 
 export default function Home() {
@@ -11,15 +12,17 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tracks');
   const [contractsConfigured, setContractsConfigured] = useState(false);
+  const backendOnly = process.env.NEXT_PUBLIC_BACKEND_ONLY === 'true';
 
   useEffect(() => {
     // Check if contracts are configured (not needed in backend-only mode)
-    const backendOnly = process.env.NEXT_PUBLIC_BACKEND_ONLY === 'true';
     const musicNFT = process.env.NEXT_PUBLIC_MUSIC_NFT_ADDRESS;
     const voting = process.env.NEXT_PUBLIC_VOTING_CONTRACT_ADDRESS;
     setContractsConfigured(backendOnly || !!(musicNFT && voting && musicNFT.trim() && voting.trim()));
     
-    loadTracks();
+    if (!backendOnly) {
+      loadTracks();
+    }
   }, []);
 
   async function loadTracks() {
@@ -80,7 +83,9 @@ export default function Home() {
           </div>
         </div>
 
-        {activeTab === 'tracks' && <TrackList tracks={tracks} loading={loading} />}
+        {activeTab === 'tracks' && (
+          backendOnly ? <TracksPage /> : <TrackList tracks={tracks} loading={loading} />
+        )}
         {activeTab === 'upload' && <UploadTrack onUpload={loadTracks} />}
       </main>
     </div>
